@@ -1,0 +1,108 @@
+import { create } from "zustand";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import type { AuthResponse, AuthUser } from "@/lib/types";
+
+type AuthState = {
+  accessToken: string | null;
+  refreshToken: string | null;
+  user: AuthUser | null;
+  /** true once the persisted state has been read from storage */
+  hydrated: boolean;
+  setSession: (res: AuthResponse, rememberMe?: boolean) => void;
+  setTokens: (access: string, refresh: string) => void;
+  setUser: (user: AuthUser | null) => void;
+  clear: () => void;
+  setHydrated: () => void;
+};
+
+const SESSION_COOKIE = "edu.session";
+const REMEMBER_KEY = "edu.remember";
+
+/* ── "Remember me": localStorage keeps the session across browser restarts,
+      sessionStorage drops it when the tab/browser closes. ── */
+
+function readRemember(): boolean {
+  try {
+    return typeof window !== "undefined" && localStorage.getItem(REMEMBER_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+let remember = readRemember();
+
+function setRemember(value: boolean) {
+  remember = value;
+  try {
+    if (value) localStorage.setItem(REMEMBER_KEY, "1");
+    else localStorage.removeItem(REMEMBER_KEY);
+  } catch {}
+}
+
+const dynamicStorage: StateStorage = {
+  getItem: (key) => {
+    try {
+      return localStorage.getItem(key) ?? sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      if (remember) {
+        localStorage.setItem(key, value);
+        sessionStorage.removeItem(key);
+      } else {
+        sessionStorage.setItem(key, value);
+        localStorage.removeItem(key);
+      }
+    } catch {}
+  },
+  removeItem: (key) => {
+    try {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    } catch {}
+  },
+};
+
+function setSessionCookie(on: boolean) {
+  if (typeof document === "undefined") return;
+  if (!on) {
+    document.cookie = `${SESSION_COOKIE}=; path=/; max-age=0`;
+    return;
+  }
+  // Persistent cookie only when remembering; otherwise a browser-session cookie.
+  const maxAge = remember ? `; max-age=${60 * 60 * 24 * 30}` : "";
+  document.cookie = `${SESSION_COOKIE}=1; path=/; samesite=lax${maxAge}`;
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+      hydrated: false,
+      setSession: (res, rememberMe = false) => {
+        setRemember(rememberMe);
+        setSessionCookie(true);
+        set({ accessToken: res.accessToken, refreshToken: res.refreshToken, user: res.user });
+      },
+      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+      setUser: (user) => set({ user }),
+      clear: () => {
+        setSessionCookie(false);
+        setRemember(false);
+        set({ accessToken: null, refreshToken: null, user: null });
+      },
+      setHydrated: () => set({ hydrated: true }),
+    }),
+    {
+      name: "edu.auth",
+      storage: createJSONStorage(() => dynamicStorage),
+      partialize: (s) => ({ accessToken: s.accessToken, refreshToken: s.refreshToken, user: s.user }),
+      onRehydrateStorage: () => (state) => state?.setHydrated(),
+    },
+  ),
+);

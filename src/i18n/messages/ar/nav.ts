@@ -1,0 +1,43 @@
+import { plural } from "../../translate";
+
+const nav = {
+  mainMenu: "القائمة الرئيسية",
+  openMenu: "فتح القائمة",
+  menu: "القائمة",
+  platform: "المنصة",
+  home: "الرئيسية",
+  teachers: "المدرسون",
+  students: "الطلاب",
+  courses: "الكورسات",
+  sessions: "الجلسات",
+  schedules: "الجداول الشهرية",
+  exams: "الامتحانات",
+  library: "المكتبة",
+  myFiles: "ملفاتي",
+  reports: "التقارير",
+  billing: "الحسابات",
+  settings: "الإعدادات",
+  platformAdmin: "المراكز والاشتراكات",
+  platformPlans: "الباقات",
+  planUnlimited: "بلا نهاية",
+  suspendedTitle: "حسابك معلّق مؤقتاً",
+  suspendedText: "يمكنك الاطلاع على بياناتك، لكن الإضافة والتعديل والجلسات متوقفة حتى تعيد إدارة المركز تفعيل حسابك.",
+  suspendedReason: "السبب:",
+  expiredTitle: "انتهى اشتراك المركز",
+  expiredText: "يمكنك تصفح بياناتك، لكن الإضافة والتعديل وبدء الجلسات متوقفة حتى يُجدَّد الاشتراك. تواصل مع إدارة المنصة للتجديد.",
+  expiredTextMember: "الإضافة والتعديل والجلسات متوقفة مؤقتاً حتى يجدد المركز اشتراكه.",
+  profile: "الملف الشخصي",
+  planBadge: "باقة {plan} · {remaining}",
+  planName: "باقة {plan}",
+  planEndsIn: plural({
+    zero: "تنتهي اليوم",
+    one: "تنتهي بعد يوم واحد",
+    two: "تنتهي بعد يومين",
+    few: "تنتهي بعد {count} أيام",
+    many: "تنتهي بعد {count} يوماً",
+    other: "تنتهي بعد {count} يوم",
+  }),
+  planEnded: "انتهت الفترة الحالية",
+};
+
+export default nav;

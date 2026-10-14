@@ -1,0 +1,40 @@
+import type { Shape } from "../../translate";
+import type ar from "../ar/validation";
+
+const validation: Shape<typeof ar> = {
+  maxChars: "Maximum {max} characters",
+  requiredMin: "{label} is required (at least {min} characters)",
+  tooLong: "{label} is too long",
+  required: "{label} is required",
+  invalid: "{label} is invalid",
+  number: "{label} must be a valid number",
+  intRange: "{label} must be a whole number between {min} and {max}",
+  email: "Enter a valid email address",
+  passwordRequired: "Password is required",
+  passwordWeak: "The password doesn't meet every requirement yet",
+  passwordMax: "Password is too long",
+  confirmPassword: "Re-enter the password",
+  passwordsMismatch: "Passwords don't match",
+  currentPasswordRequired: "Enter your current password",
+  samePassword: "The new password must be different from the current one",
+  phone: "Enter a valid phone number",
+  invalidChoice: "Invalid selection",
+  slug: "Identifier: 3–40 lowercase English letters, digits or hyphens",
+  chooseProvider: "Choose a meeting platform",
+  meetingUrl: "Enter a valid meeting link",
+  endAfterStart: "End time must be after the start time",
+  manualNeedsUrl: "Enter the meeting link when using “Manual link”",
+  courseOrStudent: "Choose a course or at least one student",
+  chooseStatus: "Choose a status",
+  chooseRateKind: "Choose a rate type",
+  percentOnlyTeacherPay: "Percentages are only for teacher pay. Student fees are per hour",
+  percentMax: "The percentage can't be more than 100",
+  teacherPayNoStudent: "Teacher pay can't be set for one student",
+  range: "{label} must be a number between {min} and {max}",
+  weeklyAboveMonthly: "Weekly hours can't be more than the monthly hours",
+  slotsRequired: "Add at least one time slot",
+  chooseDay: "Choose a day",
+  time: "Enter a valid time",
+};
+
+export default validation;

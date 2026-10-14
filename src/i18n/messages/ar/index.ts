@@ -1,0 +1,25 @@
+import common from "./common";
+import nav from "./nav";
+import validation from "./validation";
+import fields from "./fields";
+import auth from "./auth";
+import landing from "./landing";
+import dashboard from "./dashboard";
+import teachers from "./teachers";
+import students from "./students";
+import courses from "./courses";
+import sessions from "./sessions";
+import schedules from "./schedules";
+import exams from "./exams";
+import reports from "./reports";
+import settings from "./settings";
+import library from "./library";
+import billing from "./billing";
+import profile from "./profile";
+import platform from "./platform";
+import errors from "./errors";
+import spaces from "./spaces";
+
+export const ar = { common, nav, validation, fields, auth, landing, dashboard, teachers, students, courses, sessions, schedules, exams, reports, settings, library, billing, profile, platform, errors, spaces };
+
+export type Messages = typeof ar;

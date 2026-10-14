@@ -1,0 +1,189 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ───────── Brand: «مرح» — teal + coral, rounded, friendly ───────── */
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  /* brand extras */
+  --color-coral: var(--coral);
+  --color-coral-foreground: var(--coral-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --shadow-soft: 0 8px 24px rgb(15 118 110 / 0.1);
+  --shadow-glow: 0 6px 16px rgb(15 118 110 / 0.25);
+}
+
+:root {
+  --radius: 1rem;
+
+  --background: #f2fbf9;
+  --foreground: #0b2b2a;
+  --card: #ffffff;
+  --card-foreground: #0b2b2a;
+  --popover: #ffffff;
+  --popover-foreground: #0b2b2a;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #d9f5ef;
+  --secondary-foreground: #0f766e;
+  --muted: #eaf6f3;
+  --muted-foreground: #5f7a77;
+  --accent: #ffe8d6;
+  --accent-foreground: #9a3412;
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+  --border: #cceFe8;
+  --input: #cceFe8;
+  --ring: #0f766e;
+
+  --coral: #f97316;
+  --coral-foreground: #ffffff;
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #eab308;
+  --warning-foreground: #3f2d00;
+  --info: #0369a1;
+  --info-foreground: #ffffff;
+
+  --chart-1: #0f766e;
+  --chart-2: #f97316;
+  --chart-3: #14b8a6;
+  --chart-4: #eab308;
+  --chart-5: #0369a1;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2f4a48;
+  --sidebar-primary: #0f766e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #d9f5ef;
+  --sidebar-accent-foreground: #0f766e;
+  --sidebar-border: #cceFe8;
+  --sidebar-ring: #0f766e;
+}
+
+.dark {
+  --background: #07201e;
+  --foreground: #e6f7f4;
+  --card: #0d2b29;
+  --card-foreground: #e6f7f4;
+  --popover: #0d2b29;
+  --popover-foreground: #e6f7f4;
+  --primary: #2dd4bf;
+  --primary-foreground: #042f2e;
+  --secondary: #134e4a;
+  --secondary-foreground: #ccfbf1;
+  --muted: #123634;
+  --muted-foreground: #8fb5b0;
+  --accent: #4a2a17;
+  --accent-foreground: #fdba74;
+  --destructive: #fb7185;
+  --destructive-foreground: #2a0a12;
+  --border: #1c4745;
+  --input: #1c4745;
+  --ring: #2dd4bf;
+
+  --coral: #fb923c;
+  --coral-foreground: #1c0a00;
+  --success: #4ade80;
+  --success-foreground: #052e16;
+  --warning: #facc15;
+  --warning-foreground: #3f2d00;
+  --info: #38bdf8;
+  --info-foreground: #082f49;
+
+  --chart-1: #2dd4bf;
+  --chart-2: #fb923c;
+  --chart-3: #5eead4;
+  --chart-4: #facc15;
+  --chart-5: #38bdf8;
+
+  --sidebar: #0a2523;
+  --sidebar-foreground: #cde8e3;
+  --sidebar-primary: #2dd4bf;
+  --sidebar-primary-foreground: #042f2e;
+  --sidebar-accent: #134e4a;
+  --sidebar-accent-foreground: #ccfbf1;
+  --sidebar-border: #1c4745;
+  --sidebar-ring: #2dd4bf;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+    line-height: 1.7;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  h1, h2, h3, h4 {
+    @apply font-bold tracking-normal;
+    line-height: 1.35;
+  }
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="time"] {
+    direction: ltr;
+  }
+  .dark input[type="date"],
+  .dark input[type="datetime-local"],
+  .dark input[type="month"],
+  .dark input[type="time"] {
+    color-scheme: dark;
+  }
+}
