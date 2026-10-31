@@ -16,11 +16,13 @@ import { api, getErrorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { AttendanceStatus, LiveSession, SessionAttendee, SessionDetail } from "@/lib/types";
 
-const STATUSES: AttendanceStatus[] = ["PRESENT", "LATE", "ABSENT"];
-const STATUS_TONE: Record<AttendanceStatus, { active: string; badge: "success" | "warning" | "destructive" }> = {
+const STATUSES: AttendanceStatus[] = ["PRESENT", "LATE", "ABSENT", "EXCUSED"];
+const STATUS_TONE: Record<AttendanceStatus, { active: string; badge: "success" | "warning" | "destructive" | "info" }> = {
   PRESENT: { active: "border-success bg-success/15 text-success", badge: "success" },
   LATE: { active: "border-warning bg-warning/20 text-warning-foreground dark:text-warning", badge: "warning" },
   ABSENT: { active: "border-destructive bg-destructive/10 text-destructive", badge: "destructive" },
+  // Absent with leave: not counted against the student in reports.
+  EXCUSED: { active: "border-info bg-info/15 text-info", badge: "info" },
 };
 /** Rating colors: strong (8–10), fair (5–7), weak (1–4). */
 const ratingTone = (r: number) => (r >= 8 ? "bg-success text-success-foreground" : r >= 5 ? "bg-warning text-warning-foreground" : "bg-destructive text-destructive-foreground");
@@ -135,7 +137,7 @@ function EvaluationForm({ sessionId, onDone }: { sessionId: string; onDone: () =
       rows.map(({ a, d }) => ({
         studentId: a.studentId,
         status: d.status,
-        rating: d.status === "ABSENT" ? undefined : (d.rating ?? undefined),
+        rating: d.status === "ABSENT" || d.status === "EXCUSED" ? undefined : (d.rating ?? undefined),
         homework: d.hasHomework ? d.homework.trim() : "",
         progress: d.progress.trim(),
         comment: d.comment.trim(),
@@ -177,7 +179,7 @@ function StudentCard({
 }) {
   const { t, format } = useI18n();
   const id = (field: string) => `${field}-${a.studentId}`;
-  const absent = d.status === "ABSENT";
+  const absent = d.status === "ABSENT" || d.status === "EXCUSED";
   const homeworkMissing = showErrors && d.hasHomework && !d.homework.trim();
 
   return (
@@ -196,7 +198,7 @@ function StudentCard({
                 : t("sessions.evaluation.notEvaluated")}
           </p>
         </div>
-        <div role="radiogroup" aria-label={t("sessions.evaluation.statusLabel")} className="inline-flex gap-1.5">
+        <div role="radiogroup" aria-label={t("sessions.evaluation.statusLabel")} className="inline-flex flex-wrap gap-1.5">
           {STATUSES.map((s) => {
             const active = d.status === s;
             return (
@@ -410,8 +412,8 @@ function Detail({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("flex gap-3 rounded-xl border p-3", highlight && "border-coral/40 bg-coral/5")}>
-      <Icon className={cn("mt-0.5 size-4.5 shrink-0", highlight ? "text-coral" : "text-muted-foreground")} aria-hidden="true" />
+    <div className={cn("flex gap-3 rounded-xl border p-3", highlight && "border-highlight/50 bg-highlight/8")}>
+      <Icon className={cn("mt-0.5 size-4.5 shrink-0", highlight ? "text-highlight-foreground dark:text-highlight" : "text-muted-foreground")} aria-hidden="true" />
       <div className="min-w-0">
         <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
         <dd className="text-sm whitespace-pre-line">

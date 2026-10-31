@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, getErrorMessage } from "@/lib/api";
 import { useT } from "@/i18n/provider";
-import type { IntegrationStatus, MonthlyReport, TenantMe, TenantStats } from "@/lib/types";
+import type { IntegrationStatus, TenantMe, TenantStats } from "@/lib/types";
 
 /** Query key for a list endpoint such as "/teachers". */
 export const listKey = (endpoint: string) => ["list", endpoint] as const;
@@ -94,14 +94,6 @@ export function useStats(enabled = true) {
     queryKey: ["stats"],
     queryFn: async () => (await api.get<TenantStats>("/tenants/me/stats")).data,
     enabled,
-  });
-}
-
-export function useMonthlyReport(month: string) {
-  return useQuery({
-    queryKey: ["reports", "monthly", month],
-    queryFn: async () => (await api.get<MonthlyReport[]>("/reports/monthly", { params: { month } })).data,
-    placeholderData: (prev) => prev,
   });
 }
 

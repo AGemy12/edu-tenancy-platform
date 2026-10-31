@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PauseCircleIcon, PlayCircleIcon, UsersIcon } from "lucide-react";
+import { BarChart3Icon, PauseCircleIcon, PlayCircleIcon, UsersIcon } from "lucide-react";
 import CrudPage from "@/components/crud-page";
 import EnrollmentsDialog from "@/components/courses/enrollments-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +83,7 @@ export default function CoursesPage() {
             ? []
             : [
                 { label: t("courses.actions.students"), icon: UsersIcon, onClick: () => setStudents(r) },
+                { label: t("courses.actions.report"), icon: BarChart3Icon, href: `/dashboard/reports/course?id=${r.id}` },
                 r.isActive
                   ? { label: t("courses.actions.deactivate"), icon: PauseCircleIcon, onClick: () => h.update(r.id, { isActive: false }) }
                   : { label: t("courses.actions.activate"), icon: PlayCircleIcon, onClick: () => h.update(r.id, { isActive: true }) },

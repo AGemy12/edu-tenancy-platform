@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils";
 
 const TILES = [
   { key: "students", icon: UsersIcon, tone: "bg-secondary text-secondary-foreground", href: "/dashboard/students" },
-  { key: "teachers", icon: GraduationCapIcon, tone: "bg-accent text-accent-foreground", href: "/dashboard/teachers" },
-  { key: "courses", icon: BookOpenIcon, tone: "bg-info/15 text-info", href: "/dashboard/courses" },
-  { key: "upcomingSessions", icon: VideoIcon, tone: "bg-warning/20 text-warning-foreground dark:text-warning", href: "/dashboard/sessions" },
+  { key: "teachers", icon: GraduationCapIcon, tone: "bg-info/12 text-info", href: "/dashboard/teachers" },
+  { key: "courses", icon: BookOpenIcon, tone: "bg-highlight/20 text-highlight-foreground dark:text-highlight", href: "/dashboard/courses" },
+  { key: "upcomingSessions", icon: VideoIcon, tone: "bg-destructive/10 text-destructive dark:bg-destructive/20", href: "/dashboard/sessions" },
   { key: "openExams", icon: ClipboardCheckIcon, tone: "bg-success/15 text-success", href: "/dashboard/exams" },
 ] as const;
 
@@ -40,7 +40,7 @@ export default function DashboardHome() {
         </div>
         {user?.role !== "STUDENT" && (
           <div className="flex gap-2">
-            <Button asChild variant="coral">
+            <Button asChild>
               <Link href="/dashboard/sessions">
                 <VideoIcon /> {t("dashboard.actions.scheduleSession")}
               </Link>
@@ -60,16 +60,18 @@ export default function DashboardHome() {
           return (
             <Link key={tile.key} href={tile.href} className="group">
               <Card className="h-full transition-shadow group-hover:shadow-soft">
-                <CardContent className="flex flex-col gap-3 pt-6">
-                  <span className={cn("flex size-11 items-center justify-center rounded-xl", tile.tone)}>
-                    <tile.icon className="size-5" aria-hidden="true" />
-                  </span>
+                <CardContent className="flex flex-col gap-3 py-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">{t(`dashboard.stats.${tile.key}`)}</span>
+                    <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", tile.tone)}>
+                      <tile.icon className="size-4.5" aria-hidden="true" />
+                    </span>
+                  </div>
                   {stats.isPending ? (
                     <Skeleton className="h-9 w-16" />
                   ) : (
                     <span className="text-3xl font-bold tabular-nums">{value == null ? "—" : format.number(value)}</span>
                   )}
-                  <span className="text-sm text-muted-foreground">{t(`dashboard.stats.${tile.key}`)}</span>
                 </CardContent>
               </Card>
             </Link>

@@ -525,8 +525,8 @@ function TimeGrid({
 
                     {isToday && nowTop >= 0 && nowTop <= height && (
                       <div className="pointer-events-none absolute inset-x-0 z-30" style={{ top: nowTop }} aria-label={t("sessions.calendar.now")}>
-                        <div className="relative h-0.5 bg-coral">
-                          <span className="absolute -top-[0.3rem] -start-[0.3rem] size-3 rounded-full bg-coral ring-2 ring-card" />
+                        <div className="relative h-0.5 bg-highlight">
+                          <span className="absolute -top-[0.3rem] -start-[0.3rem] size-3 rounded-full bg-highlight ring-2 ring-card" />
                         </div>
                       </div>
                     )}

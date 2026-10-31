@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2Icon, CheckIcon, ChevronsUpDownIcon, LayoutGridIcon, PlusIcon, ShieldIcon } from "lucide-react";
+import { Building2Icon, CheckIcon, ChevronsUpDownIcon, LayoutGridIcon, LifeBuoyIcon, PlusIcon, ShieldIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,23 @@ export function SpaceSwitcher({ user }: { user: AuthUser }) {
   const inConsole = user.membershipId === null;
   const name = user.tenant?.name ?? t("spaces.platform");
   const sub = user.tenant?.slug ?? t(`common.roles.${user.role}`);
+
+  // Support mode stays in the one center it entered; the banner is the way out.
+  if (user.support) {
+    return (
+      <div className="flex w-full items-center gap-3 px-5 py-5">
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-highlight text-highlight-foreground" aria-hidden="true">
+          <LifeBuoyIcon className="size-4.5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-bold">
+            <bdi>{name}</bdi>
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">{t("support.mode")}</span>
+        </span>
+      </div>
+    );
+  }
 
   return (
     <DropdownMenu>

@@ -18,6 +18,7 @@ const students: Shape<typeof ar> = {
   },
   actions: {
     schedule: "Monthly hours schedule",
+    report: "Student report",
   },
 };
 

@@ -35,6 +35,7 @@ const courses = {
   },
   actions: {
     students: "طلاب الكورس",
+    report: "تقرير الكورس",
     deactivate: "إيقاف الكورس",
     activate: "تفعيل الكورس",
   },

@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Building2Icon, CalendarDaysIcon, ClipboardCheckIcon, LinkIcon, VideoIcon } from "lucide-react";
+import { Building2Icon, CalendarDaysIcon, ClipboardCheckIcon, LifeBuoyIcon, LinkIcon, LogInIcon, VideoIcon } from "lucide-react";
 import { AccountStatusBadge } from "@/components/account-status";
+import SupportDialog, { type SupportTarget } from "@/components/platform/support-dialog";
+import { SupportLog, SupportRequests } from "@/components/platform/support-log";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -41,6 +45,7 @@ function TenantDetail({ id }: { id: string }) {
     queryFn: async () => (await api.get<PlatformTenantDetail>(`/tenants/${id}`)).data,
   });
   const d = q.data;
+  const [support, setSupport] = useState<SupportTarget | null>(null);
 
   if (!d) {
     return (
@@ -74,6 +79,12 @@ function TenantDetail({ id }: { id: string }) {
             {d.lastLoginAt ? t("platform.detail.lastLogin", { date: format.dateTime(d.lastLoginAt) }) : t("platform.detail.noLogin")}
           </span>
         </SheetDescription>
+        <div className="pt-2">
+          <Button variant="highlight" size="sm" disabled={d.status !== "ACTIVE"} onClick={() => setSupport({ tenantId: d.id, tenantName: d.name })}>
+            <LifeBuoyIcon data-icon="inline-start" /> {t("support.requestAsOwner")}
+          </Button>
+          {d.status !== "ACTIVE" && <p className="mt-1 text-xs text-muted-foreground">{t("support.suspendedHint")}</p>}
+        </div>
       </SheetHeader>
 
       <div className="space-y-6 px-4 sm:px-6">
@@ -140,13 +151,26 @@ function TenantDetail({ id }: { id: string }) {
                 {d.members.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell>
-                      <div className="min-w-0">
-                        <p className="font-medium">
-                          <bdi>{m.user.fullName}</bdi>
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground" dir="ltr">
-                          {m.user.email}
-                        </p>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="shrink-0"
+                          disabled={d.status !== "ACTIVE" || m.status === "BLOCKED"}
+                          aria-label={t("support.requestAs", { name: m.user.fullName })}
+                          title={t("support.requestAs", { name: m.user.fullName })}
+                          onClick={() => setSupport({ tenantId: d.id, tenantName: d.name, membership: { id: m.id, name: m.user.fullName, role: m.role } })}
+                        >
+                          <LogInIcon className="rtl:rotate-180" />
+                        </Button>
+                        <div className="min-w-0">
+                          <p className="font-medium">
+                            <bdi>{m.user.fullName}</bdi>
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground" dir="ltr">
+                            {m.user.email}
+                          </p>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -195,9 +219,22 @@ function TenantDetail({ id }: { id: string }) {
                 {d.currency}
               </dd>
             </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">{t("platform.detail.platformFee")}</dt>
+              <dd className="tabular-nums">
+                {d.platformFeePercent === null ? t("platform.noFee") : <span dir="ltr">{t("platform.feePercent", { percent: format.number(d.platformFeePercent) })}</span>}
+              </dd>
+            </div>
           </dl>
         </Section>
+        <Section icon={LifeBuoyIcon} title={t("support.requests.title")}>
+          <SupportRequests tenantId={d.id} />
+        </Section>
+        <Section icon={LifeBuoyIcon} title={t("support.log.title")}>
+          <SupportLog tenantId={d.id} />
+        </Section>
       </div>
+      <SupportDialog target={support} onClose={() => setSupport(null)} />
     </div>
   );
 }

@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2Icon, UserRoundPlusIcon } from "lucide-react";
+import { BarChart3Icon, BellRingIcon, CheckIcon, LinkIcon, Loader2Icon, MinusIcon, UserRoundPlusIcon } from "lucide-react";
 import { AccountStatusBadge, AccountStatusDialog, accountStatusActions, type StatusChange } from "@/components/account-status";
 import CrudPage from "@/components/crud-page";
+import { accountKey, useMeetingReminder, type HostedProvider } from "@/components/sessions/meeting-account-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-auth";
-import { useCreate, useList } from "@/hooks/use-resources";
+import { useCreate, useIntegrations, useList } from "@/hooks/use-resources";
 import { useI18n } from "@/i18n/provider";
 import type { Teacher } from "@/lib/types";
 import { teacherSchema, teacherUpdateSchema } from "@/lib/schemas";
+
+const HOSTED: HostedProvider[] = ["ZOOM", "GOOGLE_MEET"];
 
 export default function TeachersPage() {
   const { t, locale } = useI18n();
@@ -23,6 +26,11 @@ export default function TeachersPage() {
   const canAddSelf = user?.role === "TENANT_ADMIN" && list.isSuccess && !list.data.some(isSelf);
   // Anyone who taught anything stays (suspended at most): the API refuses to delete them.
   const hasRecord = (r: Teacher) => Boolean(r._count && r._count.courses + r._count.sessions + r._count.exams + r._count.schedules + r._count.billingRates > 0);
+  // Zoom and Meet sessions run on their teacher's own account: the admin sees who linked one, and asks the rest.
+  const integrations = useIntegrations();
+  const remind = useMeetingReminder();
+  const hosted = HOSTED.filter((p) => integrations.data?.[accountKey(p)].configured);
+  const missing = (r: Teacher) => (r.meetingAccounts ? hosted.filter((p) => !r.meetingAccounts![accountKey(p)]) : []);
 
   return (
     <>
@@ -74,6 +82,29 @@ export default function TeachersPage() {
           label: t("fields.accountStatus"),
           render: (r) => <AccountStatusBadge status={r.membership.status} reason={r.membership.statusReason} />,
         },
+        ...(hosted.length && list.data?.some((r) => r.meetingAccounts)
+          ? [
+              {
+                key: "meetingAccounts",
+                label: t("teachers.columns.meetingAccounts"),
+                render: (r: Teacher) => (
+                  <div className="flex flex-wrap gap-1">
+                    {hosted.map((p) => {
+                      const linked = Boolean(r.meetingAccounts?.[accountKey(p)]);
+                      const account = t(`teachers.meeting.accounts.${p}`);
+                      return (
+                        <Badge key={p} variant={linked ? "success" : "outline"} className={linked ? undefined : "text-muted-foreground"}>
+                          {linked ? <CheckIcon aria-hidden="true" /> : <MinusIcon aria-hidden="true" />}
+                          <span dir="ltr">{account}</span>
+                          <span className="sr-only">{t(linked ? "teachers.meeting.linked" : "teachers.meeting.missing")}</span>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                ),
+              },
+            ]
+          : []),
       ]}
       schema={teacherSchema}
       updateSchema={teacherUpdateSchema}
@@ -92,10 +123,21 @@ export default function TeachersPage() {
         { name: "subjects", label: t("teachers.form.subjects"), placeholder: t("teachers.form.subjectsPlaceholder") },
         { name: "bio", label: t("fields.bio"), type: "textarea" },
       ]}
-      rowActions={(r) =>
+      rowActions={(r) => [
+        { label: t("teachers.actions.report"), icon: BarChart3Icon, href: `/dashboard/reports/teacher?id=${r.id}` },
+        // Only the teacher can link their account: the admin links their own in settings, and reminds the others.
+        ...(isSelf(r)
+          ? missing(r).length
+            ? [{ label: t("teachers.meeting.linkYours"), icon: LinkIcon, href: "/dashboard/settings" }]
+            : []
+          : missing(r).map((p) => ({
+              label: t("teachers.meeting.remind", { provider: t(`teachers.meeting.accounts.${p}`) }),
+              icon: BellRingIcon,
+              onClick: () => remind.mutate({ id: r.id, body: { provider: p } }),
+            }))),
         // The admin's own account can't be suspended or blocked from here.
-        r.membership.role !== "TEACHER" ? [] : accountStatusActions({ id: r.id, name: r.user.fullName, status: r.membership.status }, setStatusChange, t)
-      }
+        ...(r.membership.role !== "TEACHER" ? [] : accountStatusActions({ id: r.id, name: r.user.fullName, status: r.membership.status }, setStatusChange, t)),
+      ]}
     />
     <AccountStatusDialog endpoint="/teachers" change={statusChange} onClose={() => setStatusChange(null)} />
     </>

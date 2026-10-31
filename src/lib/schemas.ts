@@ -249,20 +249,28 @@ const rateAmount = z
 const rateBasis = z
   .string()
   .optional()
-  .transform((v) => (v === "PERCENT" ? "PERCENT" : "PER_HOUR"));
+  .transform((v) => (v === "PERCENT" ? "PERCENT" : v === "PER_SESSION" ? "PER_SESSION" : "PER_HOUR"));
 
 const percentWithinRange = (v: { basis: string; amount: number }) => v.basis !== "PERCENT" || v.amount <= 100;
 
+/**
+ * One rate-card line. The page fixes `kind`: a student price (teacher, course and student all
+ * optional, the most specific wins) or teacher pay (teacher required, course optional).
+ */
 export const rateSchema = z
   .object({
     kind: z.enum(["STUDENT_FEE", "TEACHER_PAY"], { message: vmsg("validation.chooseRateKind") }),
     basis: rateBasis,
-    teacherId: requiredId("fields.teacher"),
+    teacherId: optionalId,
     courseId: optionalId,
     studentId: optionalId,
     amount: rateAmount,
     effectiveFrom: localDay("fields.effectiveFrom"),
     note: optionalText(500),
+  })
+  .refine((v) => v.kind !== "TEACHER_PAY" || Boolean(v.teacherId), {
+    message: vmsg("validation.required", { label: label("fields.teacher") }),
+    path: ["teacherId"],
   })
   .refine((v) => v.basis !== "PERCENT" || v.kind === "TEACHER_PAY", {
     message: vmsg("validation.percentOnlyTeacherPay"),

@@ -18,6 +18,8 @@ const nav: Shape<typeof ar> = {
   reports: "Reports",
   billing: "Billing",
   settings: "Settings",
+  messages: "Messages",
+  notifications: "Notifications",
   platformAdmin: "Centers & subscriptions",
   platformPlans: "Packages",
   planUnlimited: "no end date",

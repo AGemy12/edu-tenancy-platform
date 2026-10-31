@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, type Control, type FieldValues } from "react-hook-form";
+import { useForm, useWatch, type Control, type FieldValues } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { EyeIcon, Loader2Icon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
@@ -76,6 +76,10 @@ type Props<T extends Row> = {
   updateSchema?: FormSchema;
   /** Row → form strings used to prefill the edit dialog. */
   toForm?: (row: T) => Record<string, string>;
+  /** Form values fixed by the page (no field shown), e.g. a discriminator the schema needs. */
+  defaults?: Record<string, string>;
+  /** Shows only some of the endpoint's rows (e.g. one kind), sharing the list query with other pages. */
+  filter?: (row: T) => boolean;
   /** Extra per-row actions appended to the menu (join, publish, …). */
   rowActions?: (row: T, helpers: RowHelpers) => RowAction[];
   /** Text shown at the top of the row menu and in dialogs. */
@@ -93,6 +97,8 @@ type Props<T extends Row> = {
   emptyText?: string;
   /** Shown instead of the table (e.g. a calendar). Gets the rows and each row's menu; the dialogs still work. */
   renderView?: (view: { rows: T[]; loading: boolean; actionsFor: (row: T) => RowAction[] }) => React.ReactNode;
+  /** A warning under the fields that follows what is typed (e.g. a missing meeting account). */
+  formNotice?: (values: Record<string, string>, mode: "create" | "edit") => React.ReactNode;
 };
 
 function get(row: Row, path: string): unknown {
@@ -125,6 +131,12 @@ function RemoteSelect({ field, control }: { field: Field; control: FormControl }
   );
 }
 
+/** Re-renders only itself as the form changes, not the whole page. */
+function FormNotice({ control, mode, render }: { control: FormControl; mode: "create" | "edit"; render: NonNullable<Props<Row>["formNotice"]> }) {
+  const values = useWatch({ control }) as Record<string, string>;
+  return render(values, mode);
+}
+
 type DialogState<T> = { mode: "create" } | { mode: "edit"; row: T } | null;
 
 export default function CrudPage<T extends Row>({
@@ -136,6 +148,8 @@ export default function CrudPage<T extends Row>({
   schema,
   updateSchema,
   toForm,
+  defaults,
+  filter,
   rowActions,
   rowLabel,
   createLabel: createLabelProp,
@@ -147,6 +161,7 @@ export default function CrudPage<T extends Row>({
   emptyTitle: emptyTitleProp,
   emptyText,
   renderView,
+  formNotice,
 }: Props<T>) {
   const t = useT();
   const createLabel = createLabelProp ?? t("common.actions.add");
@@ -160,7 +175,7 @@ export default function CrudPage<T extends Row>({
   const [confirm, setConfirm] = useState<T | null>(null);
   const canEdit = Boolean(updateSchema && toForm);
 
-  const blankValues: FormIn = Object.fromEntries(fields.map((f) => [f.name, ""]));
+  const blankValues: FormIn = { ...Object.fromEntries(fields.map((f) => [f.name, ""])), ...defaults };
 
   // One form serves both create and edit; the active zod schema is picked at submit time.
   const form = useForm<FormIn>({ defaultValues: blankValues });
@@ -221,7 +236,7 @@ export default function CrudPage<T extends Row>({
     dialog?.mode === "edit" ? !f.createOnly : !f.editOnly,
   );
   const saving = create.isPending || update.isPending;
-  const rows = list.data ?? [];
+  const rows = filter ? (list.data ?? []).filter(filter) : (list.data ?? []);
 
   return (
     <div className="space-y-6">
@@ -378,6 +393,7 @@ export default function CrudPage<T extends Row>({
                   />
                 );
               })}
+              {formNotice && dialog && <FormNotice control={form.control} mode={dialog.mode} render={formNotice} />}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeDialog}>

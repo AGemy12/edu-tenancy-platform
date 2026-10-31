@@ -173,7 +173,7 @@ export function BillingFilters({ filters, set, clear, range, activeCount, role, 
           <SlidersHorizontalIcon data-icon="inline-start" />
           {t("billing.filters.advanced")}
           {activeCount > 0 && (
-            <Badge variant="coral" className="ms-1 h-5 min-w-5 px-1.5 tabular-nums">
+            <Badge className="ms-1 h-5 min-w-5 px-1.5 tabular-nums">
               {format.number(activeCount)}
             </Badge>
           )}

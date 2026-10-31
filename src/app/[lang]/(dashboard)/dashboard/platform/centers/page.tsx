@@ -3,12 +3,17 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CirclePauseIcon, CirclePlayIcon, CreditCardIcon, EyeIcon, SearchIcon } from "lucide-react";
+import { CirclePauseIcon, CirclePlayIcon, CreditCardIcon, EyeIcon, LifeBuoyIcon, PercentIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react";
+import CreateTenantDialog from "@/components/platform/create-tenant-dialog";
+import PlatformFeeDialog, { type PlatformFeeTarget } from "@/components/platform/platform-fee-dialog";
 import SubscriptionDialog from "@/components/platform/subscription-dialog";
+import SupportDialog, { type SupportTarget } from "@/components/platform/support-dialog";
 import TenantSheet from "@/components/platform/tenant-sheet";
 import { RowActions, type RowAction } from "@/components/row-actions";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -36,6 +41,11 @@ export default function PlatformCentersPage() {
   const tenants = useList<PlatformTenant>("/tenants");
   const [managing, setManaging] = useState<PlatformTenant | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
+  const [fee, setFee] = useState<PlatformFeeTarget | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [support, setSupport] = useState<SupportTarget | null>(null);
+  // Ticked rows: the targets (or the exceptions) of a bulk commission.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState("");
   // The home page's tiles link here with the filter in the hash (#expired). This page only renders
   // on the client (behind the signed-in layout), so reading the hash at mount is safe.
@@ -75,9 +85,33 @@ export default function PlatformCentersPage() {
     });
   }, [rows, query, filter]);
 
+  const selectedRows = (rows ?? []).filter((r) => selected.has(r.id));
+  const allShownSelected = shown.length > 0 && shown.every((r) => selected.has(r.id));
+  const someShownSelected = shown.some((r) => selected.has(r.id));
+  function toggle(id: string, on: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+  function toggleShown(on: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const r of shown) {
+        if (on) next.add(r.id);
+        else next.delete(r.id);
+      }
+      return next;
+    });
+  }
+
   const actionsFor = (r: PlatformTenant): RowAction[] => [
     { label: t("platform.actions.details"), icon: EyeIcon, onClick: () => setViewing(r.id) },
     { label: t("platform.actions.subscription"), icon: CreditCardIcon, onClick: () => setManaging(r) },
+    { label: t("platform.actions.fee"), icon: PercentIcon, onClick: () => setFee({ kind: "single", tenant: r }) },
+    ...(r.status === "ACTIVE" ? [{ label: t("support.requestAsOwner"), icon: LifeBuoyIcon, onClick: () => setSupport({ tenantId: r.id, tenantName: r.name }) }] : []),
     r.status === "ACTIVE"
       ? { label: t("platform.actions.suspend"), icon: CirclePauseIcon, variant: "destructive", separatorBefore: true, onClick: () => setStatus.mutate({ id: r.id, status: "SUSPENDED" }) }
       : { label: t("platform.actions.activate"), icon: CirclePlayIcon, separatorBefore: true, onClick: () => setStatus.mutate({ id: r.id, status: "ACTIVE" }) },
@@ -85,9 +119,14 @@ export default function PlatformCentersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold md:text-3xl">{t("platform.title")}</h1>
-        <p className="text-muted-foreground">{t("platform.description")}</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold md:text-3xl">{t("platform.title")}</h1>
+          <p className="text-muted-foreground">{t("platform.description")}</p>
+        </div>
+        <Button onClick={() => setCreating(true)}>
+          <PlusIcon data-icon="inline-start" /> {t("platform.create.button")}
+        </Button>
       </div>
 
       <Card className="gap-0 py-0">
@@ -99,7 +138,7 @@ export default function PlatformCentersPage() {
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("platform.centers.search")} className="h-9 ps-9" aria-label={t("platform.centers.search")} />
           </div>
         </div>
-        <div className="flex flex-wrap gap-1.5 border-b px-4 py-2.5" role="group">
+        <div className="flex flex-wrap items-center gap-1.5 border-b px-4 py-2.5" role="group">
           {FILTERS.map((f) => (
             <button
               key={f}
@@ -114,15 +153,37 @@ export default function PlatformCentersPage() {
               {t(`platform.centers.filters.${f}`)}
             </button>
           ))}
+          <div className="ms-auto flex flex-wrap items-center gap-2">
+            {selected.size > 0 && (
+              <>
+                <span className="text-xs text-muted-foreground tabular-nums">{t("platform.fee.selected", { count: selected.size })}</span>
+                <Button variant="ghost" size="xs" onClick={() => setSelected(new Set())}>
+                  <XIcon data-icon="inline-start" /> {t("platform.fee.clearSelection")}
+                </Button>
+              </>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setFee({ kind: "bulk", selected: selectedRows })} disabled={!rows?.length}>
+              <PercentIcon data-icon="inline-start" /> {t("platform.fee.bulk")}
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allShownSelected ? true : someShownSelected ? "indeterminate" : false}
+                    onCheckedChange={(v) => toggleShown(v === true)}
+                    aria-label={t("platform.fee.selectAll")}
+                    disabled={shown.length === 0}
+                  />
+                </TableHead>
                 <TableHead>{t("platform.columns.center")}</TableHead>
                 <TableHead className="hidden lg:table-cell">{t("platform.columns.owner")}</TableHead>
                 <TableHead>{t("platform.columns.plan")}</TableHead>
                 <TableHead>{t("platform.columns.subscription")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("platform.columns.fee")}</TableHead>
                 <TableHead className="hidden md:table-cell">{t("platform.columns.members")}</TableHead>
                 <TableHead className="hidden xl:table-cell">{t("platform.columns.storage")}</TableHead>
                 <TableHead className="hidden xl:table-cell">{t("platform.columns.createdAt")}</TableHead>
@@ -134,7 +195,7 @@ export default function PlatformCentersPage() {
               {tenants.isPending ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 9 }).map((_, j) => (
+                    {Array.from({ length: 11 }).map((_, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-20" />
                       </TableCell>
@@ -143,13 +204,16 @@ export default function PlatformCentersPage() {
                 ))
               ) : shown.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={11} className="py-12 text-center text-sm text-muted-foreground">
                     {rows?.length ? t("platform.centers.noResults") : t("platform.emptyTitle")}
                   </TableCell>
                 </TableRow>
               ) : (
                 shown.map((r) => (
-                  <TableRow key={r.id} className="cursor-pointer" onClick={() => setViewing(r.id)}>
+                  <TableRow key={r.id} className="cursor-pointer" data-state={selected.has(r.id) ? "selected" : undefined} onClick={() => setViewing(r.id)}>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => toggle(r.id, v === true)} aria-label={t("platform.fee.selectRow", { name: r.name })} />
+                    </TableCell>
                     <TableCell>
                       <p className="font-semibold">
                         <bdi>{r.name}</bdi>
@@ -188,6 +252,15 @@ export default function PlatformCentersPage() {
                         "—"
                       )}
                     </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {r.platformFeePercent === null ? (
+                        <span className="text-xs text-muted-foreground">{t("platform.noFee")}</span>
+                      ) : (
+                        <Badge variant="outline" dir="ltr">
+                          {t("platform.feePercent", { percent: format.number(r.platformFeePercent) })}
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="hidden text-sm md:table-cell">
                       {t("platform.members", { teachers: t("platform.teachers", { count: r._count.teachers }), students: t("platform.students", { count: r._count.students }) })}
                     </TableCell>
@@ -210,7 +283,10 @@ export default function PlatformCentersPage() {
       </Card>
 
       <SubscriptionDialog tenant={managing} onClose={() => setManaging(null)} />
+      <PlatformFeeDialog target={fee} onClose={() => setFee(null)} />
       <TenantSheet tenantId={viewing} onClose={() => setViewing(null)} />
+      <CreateTenantDialog open={creating} onClose={() => setCreating(false)} onCreated={(tenant) => setViewing(tenant.id)} />
+      <SupportDialog target={support} onClose={() => setSupport(null)} />
     </div>
   );
 }

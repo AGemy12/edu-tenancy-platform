@@ -11,6 +11,7 @@ import {
   HandCoinsIcon,
   InfoIcon,
   LandmarkIcon,
+  PercentIcon,
   ReceiptTextIcon,
   TagsIcon,
   VideoIcon,
@@ -32,7 +33,7 @@ import { useBillingOptions, useBillingSessions, useBillingSummary } from "@/hook
 import { Link } from "@/i18n/navigation";
 import { useI18n } from "@/i18n/provider";
 import { getErrorMessage } from "@/lib/api";
-import type { BillingGroupBy, BillingSessionRow, BillingTotals, RateSource, Role, SessionStatus } from "@/lib/types";
+import type { BillingGroupBy, BillingSessionRow, BillingTotals, RateBasis, RateSource, Role, SessionStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { BillingFilters } from "./billing-filters";
 import { GROUPS, SORTS, useBillingFilters } from "./use-billing-filters";
@@ -65,8 +66,10 @@ function useFormatters(currency: string) {
     if (!m) return t("billing.duration.h", { h: format.number(h) });
     return t("billing.duration.hm", { h: format.number(h), m: format.number(m) });
   };
-  const rate = (amount: number, basis: "PER_HOUR" | "PERCENT") =>
-    basis === "PERCENT" ? t("billing.percent", { percent: format.number(amount) }) : t("billing.perHour", { amount: money(amount) });
+  const rate = (amount: number, basis: RateBasis) =>
+    basis === "PERCENT"
+      ? t("billing.percent", { percent: format.number(amount) })
+      : t(basis === "PER_SESSION" ? "billing.perSession" : "billing.perHour", { amount: money(amount) });
   return { money, duration, rate };
 }
 
@@ -84,6 +87,8 @@ export function BillingView() {
   const summary = useBillingSummary({ ...query, groupBy }, filters.view === "summary");
   const [details, setDetails] = useState<BillingSessionRow | null>(null);
   const totals = list.data?.totals;
+  // The platform's commission on this center (admins only); null when none is set.
+  const platformFeePercent = list.data?.platformFeePercent ?? null;
 
   return (
     <div className="space-y-6">
@@ -93,22 +98,36 @@ export function BillingView() {
           <p className="text-muted-foreground">{t(`billing.description.${viewer}`)}</p>
         </div>
         {viewer !== "student" && (
-          <Button asChild variant="outline">
-            <Link href="/dashboard/billing/rates">
-              <TagsIcon data-icon="inline-start" /> {viewer === "admin" ? t("billing.manageRates") : t("billing.myRates")}
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href="/dashboard/billing/rates">
+                <TagsIcon data-icon="inline-start" /> {viewer === "admin" ? t("billing.managePrices") : t("billing.myPrices")}
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/billing/pay">
+                <HandCoinsIcon data-icon="inline-start" /> {viewer === "admin" ? t("billing.managePay") : t("billing.myPay")}
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
 
-      <p className="flex items-start gap-2 rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
-        <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        {t("billing.rule")}
-      </p>
+      <div className="space-y-1 rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+        <p className="flex items-start gap-2">
+          <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          {t("billing.rule")}
+        </p>
+        {viewer !== "student" && list.data && (
+          <p className="ps-6 font-medium text-foreground/80">
+            {viewer === "admin" ? (platformFeePercent === null ? t("billing.formula.adminNoFee") : t("billing.formula.admin")) : t("billing.formula.teacher")}
+          </p>
+        )}
+      </div>
 
       <BillingFilters {...state} role={user?.role ?? "STUDENT"} options={options.data} />
 
-      <Kpis totals={totals} viewer={viewer} currency={currency} loading={list.isPending} />
+      <Kpis totals={totals} viewer={viewer} currency={currency} loading={list.isPending} platformFeePercent={platformFeePercent} />
 
       {totals && viewer !== "student" && <Notices totals={totals} viewer={viewer} filters={filters} onFilter={set} />}
 
@@ -173,6 +192,7 @@ export function BillingView() {
             filtered={state.activeCount > 0 || Boolean(filters.q)}
             viewer={viewer}
             currency={currency}
+            showPlatformFee={platformFeePercent !== null}
             onDetails={setDetails}
           />
           {list.data && list.data.total > 0 && (
@@ -181,19 +201,31 @@ export function BillingView() {
         </TabsContent>
 
         <TabsContent value="summary" className="mt-4">
-          <SummaryTable data={summary.data} loading={summary.isPending} viewer={viewer} currency={currency} />
+          <SummaryTable data={summary.data} loading={summary.isPending} viewer={viewer} currency={currency} showPlatformFee={platformFeePercent !== null} />
         </TabsContent>
       </Tabs>
 
-      <DetailsDialog row={details} viewer={viewer} currency={currency} onClose={() => setDetails(null)} />
+      <DetailsDialog row={details} viewer={viewer} currency={currency} platformFeePercent={platformFeePercent} onClose={() => setDetails(null)} />
     </div>
   );
 }
 
-function Kpis({ totals, viewer, currency, loading }: { totals?: BillingTotals; viewer: Viewer; currency: string; loading: boolean }) {
+function Kpis({
+  totals,
+  viewer,
+  currency,
+  loading,
+  platformFeePercent,
+}: {
+  totals?: BillingTotals;
+  viewer: Viewer;
+  currency: string;
+  loading: boolean;
+  platformFeePercent: number | null;
+}) {
   const { t, format } = useI18n();
   const { money, duration } = useFormatters(currency);
-  const tiles: { key: string; label: string; value: string | null; icon: typeof ClockIcon; tone: string }[] = [
+  const tiles: { key: string; label: string; sub?: string; value: string | null; icon: typeof ClockIcon; tone: string }[] = [
     { key: "sessions", label: t("billing.kpi.sessions"), value: totals ? format.number(totals.chargedSessions) : null, icon: VideoIcon, tone: "bg-info/15 text-info" },
     viewer === "student"
       ? { key: "time", label: t("billing.kpi.studentTime"), value: totals ? duration(totals.studentMinutes) : null, icon: ClockIcon, tone: "bg-secondary text-secondary-foreground" }
@@ -215,6 +247,16 @@ function Kpis({ totals, viewer, currency, loading }: { totals?: BillingTotals; v
       tone: "bg-warning/20 text-warning-foreground dark:text-warning",
     });
   }
+  if (viewer === "admin" && platformFeePercent !== null) {
+    tiles.push({
+      key: "platformFee",
+      label: t("billing.kpi.platformFee"),
+      sub: t("billing.kpi.platformFeeSub", { percent: format.number(platformFeePercent) }),
+      value: totals?.platformFee != null ? money(totals.platformFee) : totals ? "—" : null,
+      icon: PercentIcon,
+      tone: "bg-destructive/10 text-destructive",
+    });
+  }
   if (viewer === "admin") {
     tiles.push({
       key: "net",
@@ -226,7 +268,12 @@ function Kpis({ totals, viewer, currency, loading }: { totals?: BillingTotals; v
   }
 
   return (
-    <div className={cn("grid grid-cols-2 gap-3 sm:gap-4", tiles.length === 5 ? "lg:grid-cols-5" : tiles.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-3 sm:gap-4",
+        tiles.length === 6 ? "lg:grid-cols-3 xl:grid-cols-6" : tiles.length === 5 ? "lg:grid-cols-5" : tiles.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3",
+      )}
+    >
       {tiles.map((tile) => (
         <Card key={tile.key}>
           <CardContent className="flex flex-col gap-2 pt-5 sm:gap-3 sm:pt-6">
@@ -240,7 +287,10 @@ function Kpis({ totals, viewer, currency, loading }: { totals?: BillingTotals; v
                 <bdi>{tile.value}</bdi>
               </span>
             )}
-            <span className="text-sm text-muted-foreground">{tile.label}</span>
+            <span className="text-sm text-muted-foreground">
+              {tile.label}
+              {tile.sub && <span className="block text-xs tabular-nums">{tile.sub}</span>}
+            </span>
           </CardContent>
         </Card>
       ))}
@@ -320,6 +370,7 @@ function SessionsTable({
   filtered,
   viewer,
   currency,
+  showPlatformFee,
   onDetails,
 }: {
   rows?: BillingSessionRow[];
@@ -327,11 +378,13 @@ function SessionsTable({
   filtered: boolean;
   viewer: Viewer;
   currency: string;
+  showPlatformFee: boolean;
   onDetails: (row: BillingSessionRow) => void;
 }) {
   const { t, format } = useI18n();
   const { money, duration } = useFormatters(currency);
   const showNet = viewer === "admin" && rows?.some((r) => r.net !== undefined);
+  const showFee = Boolean(showNet && showPlatformFee);
   const cols = [
     "date",
     "session",
@@ -341,6 +394,7 @@ function SessionsTable({
     "status",
     "fees",
     ...(viewer !== "student" ? ["pay"] : []),
+    ...(showFee ? ["platformFee"] : []),
     ...(showNet ? ["net"] : []),
     "actions",
   ];
@@ -361,6 +415,7 @@ function SessionsTable({
               {viewer !== "student" && (
                 <TableHead className="text-end">{t(viewer === "teacher" ? "billing.columns.myPay" : "billing.columns.teacherPay")}</TableHead>
               )}
+              {showFee && <TableHead className="hidden text-end xl:table-cell">{t("billing.columns.platformFee")}</TableHead>}
               {showNet && <TableHead className="hidden text-end xl:table-cell">{t("billing.columns.net")}</TableHead>}
               <TableHead className="w-14 text-center">{t("common.labels.actions")}</TableHead>
             </TableRow>
@@ -447,6 +502,11 @@ function SessionsTable({
                         )}
                       </TableCell>
                     )}
+                    {showFee && (
+                      <TableCell className="hidden text-end whitespace-nowrap tabular-nums xl:table-cell">
+                        {r.platformFee !== undefined && r.billable ? <bdi>{money(r.platformFee)}</bdi> : "—"}
+                      </TableCell>
+                    )}
                     {showNet && (
                       <TableCell className="hidden text-end whitespace-nowrap tabular-nums xl:table-cell">
                         {r.net !== undefined && r.billable ? <bdi>{money(r.net)}</bdi> : "—"}
@@ -495,21 +555,24 @@ function SummaryTable({
   loading,
   viewer,
   currency,
+  showPlatformFee,
 }: {
   data: ReturnType<typeof useBillingSummary>["data"];
   loading: boolean;
   viewer: Viewer;
   currency: string;
+  showPlatformFee: boolean;
 }) {
   const { t, format } = useI18n();
   const { money, duration } = useFormatters(currency);
   const groups = data?.groups ?? [];
   const showPay = groups.some((g) => g.teacherPay !== undefined);
   const showNet = groups.some((g) => g.net !== undefined);
+  const showFee = showNet && showPlatformFee;
   const label = (g: (typeof groups)[number]) =>
     data?.groupBy === "month" ? format.month(`${g.key}-01T12:00:00`) : g.label ?? t("billing.group.noCourse");
   const sum = (pick: (g: (typeof groups)[number]) => number | undefined) => groups.reduce((a, g) => a + (pick(g) ?? 0), 0);
-  const colCount = 4 + (showPay ? 1 : 0) + (showNet ? 1 : 0);
+  const colCount = 4 + (showPay ? 1 : 0) + (showFee ? 1 : 0) + (showNet ? 1 : 0);
 
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-soft">
@@ -524,6 +587,7 @@ function SummaryTable({
               {showPay && (
                 <TableHead className="text-end">{t(viewer === "teacher" ? "billing.columns.myPay" : "billing.columns.teacherPay")}</TableHead>
               )}
+              {showFee && <TableHead className="text-end">{t("billing.columns.platformFee")}</TableHead>}
               {showNet && <TableHead className="text-end">{t("billing.columns.net")}</TableHead>}
             </TableRow>
           </TableHeader>
@@ -560,6 +624,11 @@ function SummaryTable({
                       <bdi>{money(g.teacherPay ?? 0)}</bdi>
                     </TableCell>
                   )}
+                  {showFee && (
+                    <TableCell className="text-end tabular-nums">
+                      <bdi>{money(g.platformFee ?? 0)}</bdi>
+                    </TableCell>
+                  )}
                   {showNet && (
                     <TableCell className="text-end tabular-nums">
                       <bdi>{money(g.net ?? 0)}</bdi>
@@ -583,6 +652,11 @@ function SummaryTable({
                     <bdi>{money(sum((g) => g.teacherPay))}</bdi>
                   </TableCell>
                 )}
+                {showFee && (
+                  <TableCell className="text-end tabular-nums">
+                    <bdi>{money(sum((g) => g.platformFee))}</bdi>
+                  </TableCell>
+                )}
                 {showNet && (
                   <TableCell className="text-end tabular-nums">
                     <bdi>{money(sum((g) => g.net))}</bdi>
@@ -601,11 +675,13 @@ function DetailsDialog({
   row,
   viewer,
   currency,
+  platformFeePercent,
   onClose,
 }: {
   row: BillingSessionRow | null;
   viewer: Viewer;
   currency: string;
+  platformFeePercent: number | null;
   onClose: () => void;
 }) {
   const { t, format } = useI18n();
@@ -680,7 +756,7 @@ function DetailsDialog({
                         {s.rate !== null && s.rateSource ? (
                           <>
                             <div className="tabular-nums">
-                              <bdi>{rate(s.rate, "PER_HOUR")}</bdi>
+                              <bdi>{rate(s.rate, s.rateBasis ?? "PER_HOUR")}</bdi>
                             </div>
                             <div className="text-xs text-muted-foreground">{sourceLabel(s.rateSource)}</div>
                           </>
@@ -726,6 +802,19 @@ function DetailsDialog({
                     ) : (
                       <span className="text-muted-foreground">{t("billing.details.payNotSet")}</span>
                     )}
+                  </dd>
+                </div>
+              )}
+              {row.platformFee !== undefined && platformFeePercent !== null && (
+                <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <dt className="flex items-center gap-2 text-muted-foreground">
+                    <PercentIcon className="size-4" aria-hidden="true" /> {t("billing.details.platformFee")}
+                  </dt>
+                  <dd className="text-end">
+                    <div className="font-semibold tabular-nums">
+                      <bdi>{money(row.platformFee)}</bdi>
+                    </div>
+                    <div className="text-xs text-muted-foreground tabular-nums">{t("billing.kpi.platformFeeSub", { percent: format.number(platformFeePercent) })}</div>
                   </dd>
                 </div>
               )}

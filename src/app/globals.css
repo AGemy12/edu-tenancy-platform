@@ -4,7 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ───────── Brand: «مرح» — teal + coral, rounded, friendly ───────── */
+/* ───────── Brand: «نيلي حديث» — indigo + amber, calm, precise ───────── */
 
 @theme inline {
   --font-sans: var(--font-sans);
@@ -22,6 +22,13 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-outcome-present: var(--outcome-present);
+  --color-outcome-late: var(--outcome-late);
+  --color-outcome-excused: var(--outcome-excused);
+  --color-outcome-absent: var(--outcome-absent);
+  --color-outcome-unrecorded: var(--outcome-unrecorded);
+  --color-outcome-upcoming: var(--outcome-upcoming);
+  --color-outcome-canceled: var(--outcome-canceled);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -42,8 +49,8 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   /* brand extras */
-  --color-coral: var(--coral);
-  --color-coral-foreground: var(--coral-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
@@ -57,102 +64,120 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  --shadow-soft: 0 8px 24px rgb(15 118 110 / 0.1);
-  --shadow-glow: 0 6px 16px rgb(15 118 110 / 0.25);
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+  --shadow-glow: 0 1px 2px rgb(15 23 42 / 0.12);
 }
 
 :root {
-  --radius: 1rem;
+  /* 8px buttons and fields, ~11px cards (rounded-xl), ~14px panels (rounded-2xl). */
+  --radius: 0.5rem;
 
-  --background: #f2fbf9;
-  --foreground: #0b2b2a;
+  --background: #f5f6fa;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #0b2b2a;
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #0b2b2a;
-  --primary: #0f766e;
+  --popover-foreground: #0f172a;
+  --primary: #4338ca;
   --primary-foreground: #ffffff;
-  --secondary: #d9f5ef;
-  --secondary-foreground: #0f766e;
-  --muted: #eaf6f3;
-  --muted-foreground: #5f7a77;
-  --accent: #ffe8d6;
-  --accent-foreground: #9a3412;
-  --destructive: #e11d48;
+  --secondary: #ecebfa;
+  --secondary-foreground: #3730a3;
+  --muted: #f1f3f8;
+  --muted-foreground: #5b6475;
+  --accent: #eef0fd;
+  --accent-foreground: #3730a3;
+  --destructive: #be123c;
   --destructive-foreground: #ffffff;
-  --border: #cceFe8;
-  --input: #cceFe8;
-  --ring: #0f766e;
+  --border: #e3e6ee;
+  --input: #dde1ea;
+  --ring: #4338ca;
 
-  --coral: #f97316;
-  --coral-foreground: #ffffff;
-  --success: #16a34a;
+  --highlight: #f59e0b;
+  --highlight-foreground: #422006;
+  --success: #047857;
   --success-foreground: #ffffff;
-  --warning: #eab308;
-  --warning-foreground: #3f2d00;
+  --warning: #d97706;
+  --warning-foreground: #78350f;
   --info: #0369a1;
   --info-foreground: #ffffff;
 
-  --chart-1: #0f766e;
-  --chart-2: #f97316;
-  --chart-3: #14b8a6;
-  --chart-4: #eab308;
-  --chart-5: #0369a1;
+  --chart-1: #4338ca;
+  --chart-2: #f59e0b;
+  --chart-3: #0ea5e9;
+  --chart-4: #10b981;
+  --chart-5: #a5b4fc;
+
+  /* Attendance outcomes in reports (validated for color-vision deficiency; always shown with labels). */
+  --outcome-present: #10b981;
+  --outcome-late: #f59e0b;
+  --outcome-excused: #0ea5e9;
+  --outcome-absent: #e11d48;
+  --outcome-unrecorded: #cbd5e1;
+  --outcome-upcoming: #a5b4fc;
+  --outcome-canceled: #e2e8f0;
 
   --sidebar: #ffffff;
-  --sidebar-foreground: #2f4a48;
-  --sidebar-primary: #0f766e;
+  --sidebar-foreground: #4a5468;
+  --sidebar-primary: #4338ca;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #d9f5ef;
-  --sidebar-accent-foreground: #0f766e;
-  --sidebar-border: #cceFe8;
-  --sidebar-ring: #0f766e;
+  --sidebar-accent: #ecebfa;
+  --sidebar-accent-foreground: #4338ca;
+  --sidebar-border: #e3e6ee;
+  --sidebar-ring: #4338ca;
 }
 
 .dark {
-  --background: #07201e;
-  --foreground: #e6f7f4;
-  --card: #0d2b29;
-  --card-foreground: #e6f7f4;
-  --popover: #0d2b29;
-  --popover-foreground: #e6f7f4;
-  --primary: #2dd4bf;
-  --primary-foreground: #042f2e;
-  --secondary: #134e4a;
-  --secondary-foreground: #ccfbf1;
-  --muted: #123634;
-  --muted-foreground: #8fb5b0;
-  --accent: #4a2a17;
-  --accent-foreground: #fdba74;
+  --background: #0b0e17;
+  --foreground: #e6e8f0;
+  --card: #121624;
+  --card-foreground: #e6e8f0;
+  --popover: #151a2a;
+  --popover-foreground: #e6e8f0;
+  --primary: #818cf8;
+  --primary-foreground: #0b0e2a;
+  --secondary: #1e2140;
+  --secondary-foreground: #c7cbff;
+  --muted: #171b2a;
+  --muted-foreground: #9aa3b8;
+  --accent: #1e2140;
+  --accent-foreground: #e0e3ff;
   --destructive: #fb7185;
   --destructive-foreground: #2a0a12;
-  --border: #1c4745;
-  --input: #1c4745;
-  --ring: #2dd4bf;
+  --border: #242a3d;
+  --input: #2a3146;
+  --ring: #818cf8;
 
-  --coral: #fb923c;
-  --coral-foreground: #1c0a00;
-  --success: #4ade80;
-  --success-foreground: #052e16;
-  --warning: #facc15;
-  --warning-foreground: #3f2d00;
+  --highlight: #fbbf24;
+  --highlight-foreground: #2a1700;
+  --success: #34d399;
+  --success-foreground: #052e1f;
+  --warning: #fbbf24;
+  --warning-foreground: #2a1700;
   --info: #38bdf8;
   --info-foreground: #082f49;
 
-  --chart-1: #2dd4bf;
-  --chart-2: #fb923c;
-  --chart-3: #5eead4;
-  --chart-4: #facc15;
-  --chart-5: #38bdf8;
+  --chart-1: #818cf8;
+  --chart-2: #fbbf24;
+  --chart-3: #38bdf8;
+  --chart-4: #34d399;
+  --chart-5: #f472b6;
 
-  --sidebar: #0a2523;
-  --sidebar-foreground: #cde8e3;
-  --sidebar-primary: #2dd4bf;
-  --sidebar-primary-foreground: #042f2e;
-  --sidebar-accent: #134e4a;
-  --sidebar-accent-foreground: #ccfbf1;
-  --sidebar-border: #1c4745;
-  --sidebar-ring: #2dd4bf;
+  --outcome-present: #059669;
+  --outcome-late: #d97706;
+  --outcome-excused: #0284c7;
+  --outcome-absent: #e11d48;
+  --outcome-unrecorded: #475569;
+  --outcome-upcoming: #4f46e5;
+  --outcome-canceled: #2a3042;
+
+  --sidebar: #0f1320;
+  --sidebar-foreground: #c3c8d8;
+  --sidebar-primary: #818cf8;
+  --sidebar-primary-foreground: #0b0e2a;
+  --sidebar-accent: #1e2140;
+  --sidebar-accent-foreground: #e0e3ff;
+  --sidebar-border: #242a3d;
+  --sidebar-ring: #818cf8;
 }
 
 @layer base {
@@ -185,5 +210,25 @@
   .dark input[type="month"],
   .dark input[type="time"] {
     color-scheme: dark;
+  }
+}
+
+/* The notification bell rings when something new arrives. */
+@keyframes bell-ring {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(14deg);
+  }
+  40% {
+    transform: rotate(-10deg);
+  }
+  60% {
+    transform: rotate(6deg);
+  }
+  80% {
+    transform: rotate(-3deg);
   }
 }

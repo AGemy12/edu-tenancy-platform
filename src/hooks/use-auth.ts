@@ -170,12 +170,45 @@ export function useChangePassword() {
   });
 }
 
+/**
+ * Platform admin: enter a center as one of its members (support mode), under a request the
+ * center approved. Everything cached belongs to the console.
+ */
+export function useStartSupport() {
+  const router = useRouter();
+  const t = useT();
+  const qc = useQueryClient();
+  const enterSupport = useAuthStore((s) => s.enterSupport);
+  return useMutation({
+    mutationFn: async (requestId: string) => (await api.post<AuthResponse>("/support/sessions", { requestId })).data,
+    onSuccess: (data) => {
+      enterSupport(data);
+      qc.clear();
+      toast.success(t("support.entered", { name: data.user.fullName, center: data.user.tenant?.name ?? "" }));
+      router.push("/dashboard");
+    },
+    onError: (err) => toast.error(getErrorMessage(err, t("common.toast.actionFailed"))),
+  });
+}
+
+/** Leaves support mode: closes the session on the server and returns to the console (SupportBanner moves the page). */
+export function useLeaveSupport() {
+  return async () => {
+    // Sent (with the support token) before the admin's own session comes back.
+    await api.post("/support/sessions/current/end").catch(() => undefined);
+    useAuthStore.getState().leaveSupport();
+  };
+}
+
 export function useLogout() {
   const router = useRouter();
   const t = useT();
   const qc = useQueryClient();
   const { refreshToken, clear } = useAuthStore();
+  const leaveSupport = useLeaveSupport();
   return () => {
+    // Signing out of support mode only leaves it; the admin stays signed in.
+    if (useAuthStore.getState().user?.support) return void leaveSupport();
     if (refreshToken) api.post("/auth/logout", { refreshToken }).catch(() => undefined);
     clear();
     qc.clear();

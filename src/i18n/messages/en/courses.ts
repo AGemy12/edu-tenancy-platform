@@ -29,6 +29,7 @@ const courses: Shape<typeof ar> = {
   },
   actions: {
     students: "Course students",
+    report: "Course report",
     deactivate: "Suspend course",
     activate: "Activate course",
   },

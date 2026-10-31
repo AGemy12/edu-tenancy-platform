@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import type { AuthResponse } from "./types";
 
 /** Language of the current page (set on <html> by the [lang] root layout). */
-function pageLocale(): "ar" | "en" {
+export function pageLocale(): "ar" | "en" {
   return typeof document !== "undefined" && document.documentElement.lang === "en" ? "en" : "ar";
 }
 
@@ -43,22 +43,27 @@ api.interceptors.request.use((config: RetriableConfig) => {
 
 let refreshing: Promise<string | null> | null = null;
 
-async function refreshAccessToken(): Promise<string | null> {
+/** Swaps the refresh token for a new access token (one request at a time); null when the session is over. */
+export async function refreshAccessToken(): Promise<string | null> {
   if (refreshing) return refreshing;
   refreshing = (async () => {
-    const { refreshToken, setTokens, clear } = useAuthStore.getState();
-    if (!refreshToken) return null;
-    try {
-      const { data } = await bare.post<AuthResponse>("/auth/refresh", { refreshToken });
-      setTokens(data.accessToken, data.refreshToken);
-      return data.accessToken;
-    } catch {
-      clear();
-      return null;
-    } finally {
-      refreshing = null;
+    // A support session that can't refresh (closed or run out) is cleared back to the platform
+    // admin's own session; refresh that one in turn, so the request goes on as the admin.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { refreshToken, setTokens, clear } = useAuthStore.getState();
+      if (!refreshToken) return null;
+      try {
+        const { data } = await bare.post<AuthResponse>("/auth/refresh", { refreshToken });
+        setTokens(data.accessToken, data.refreshToken);
+        return data.accessToken;
+      } catch {
+        clear();
+      }
     }
-  })();
+    return null;
+  })().finally(() => {
+    refreshing = null;
+  });
   return refreshing;
 }
 

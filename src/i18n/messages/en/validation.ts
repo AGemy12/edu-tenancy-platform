@@ -27,7 +27,7 @@ const validation: Shape<typeof ar> = {
   courseOrStudent: "Choose a course or at least one student",
   chooseStatus: "Choose a status",
   chooseRateKind: "Choose a rate type",
-  percentOnlyTeacherPay: "Percentages are only for teacher pay. Student fees are per hour",
+  percentOnlyTeacherPay: "Percentages are only for teacher pay. Student prices are per hour or per session",
   percentMax: "The percentage can't be more than 100",
   teacherPayNoStudent: "Teacher pay can't be set for one student",
   range: "{label} must be a number between {min} and {max}",

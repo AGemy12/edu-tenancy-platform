@@ -17,6 +17,8 @@ const nav = {
   reports: "التقارير",
   billing: "الحسابات",
   settings: "الإعدادات",
+  messages: "الرسائل",
+  notifications: "الإشعارات",
   platformAdmin: "المراكز والاشتراكات",
   platformPlans: "الباقات",
   planUnlimited: "بلا نهاية",

@@ -15,6 +15,7 @@ const students = {
   },
   actions: {
     schedule: "جدول ساعات شهري",
+    report: "تقرير الطالب",
   },
 };
 

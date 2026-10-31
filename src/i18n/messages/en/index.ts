@@ -21,5 +21,8 @@ import profile from "./profile";
 import platform from "./platform";
 import errors from "./errors";
 import spaces from "./spaces";
+import support from "./support";
+import notifications from "./notifications";
+import chat from "./chat";
 
-export const en: Shape<Messages> = { common, nav, validation, fields, auth, landing, dashboard, teachers, students, courses, sessions, schedules, exams, reports, settings, library, billing, profile, platform, errors, spaces };
+export const en: Shape<Messages> = { common, nav, validation, fields, auth, landing, dashboard, teachers, students, courses, sessions, schedules, exams, reports, settings, library, billing, profile, platform, errors, spaces, support, notifications, chat };

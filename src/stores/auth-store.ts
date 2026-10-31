@@ -11,12 +11,20 @@ type AuthState = {
   setSession: (res: AuthResponse, rememberMe?: boolean) => void;
   setTokens: (access: string, refresh: string) => void;
   setUser: (user: AuthUser | null) => void;
+  /** Ends the session; in support mode it returns to the platform admin's own session instead. */
   clear: () => void;
   setHydrated: () => void;
+  /** Support mode: keeps the platform admin's session aside and signs in as the member. */
+  enterSupport: (res: AuthResponse) => void;
+  /** Back to the platform admin's own session; false when there was nothing to return to. */
+  leaveSupport: () => boolean;
 };
 
 const SESSION_COOKIE = "edu.session";
 const REMEMBER_KEY = "edu.remember";
+/** The platform admin's own session while they work as a member. */
+const SUPPORT_RETURN_KEY = "edu.support.return";
+type SavedSession = Pick<AuthState, "accessToken" | "refreshToken" | "user">;
 
 /* ── "Remember me": localStorage keeps the session across browser restarts,
       sessionStorage drops it when the tab/browser closes. ── */
@@ -77,9 +85,18 @@ function setSessionCookie(on: boolean) {
   document.cookie = `${SESSION_COOKIE}=1; path=/; samesite=lax${maxAge}`;
 }
 
+function readReturn(): SavedSession | null {
+  try {
+    const raw = dynamicStorage.getItem(SUPPORT_RETURN_KEY);
+    return typeof raw === "string" ? (JSON.parse(raw) as SavedSession) : null;
+  } catch {
+    return null;
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       accessToken: null,
       refreshToken: null,
       user: null,
@@ -92,11 +109,26 @@ export const useAuthStore = create<AuthState>()(
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setUser: (user) => set({ user }),
       clear: () => {
+        // A support session that ends (signed out, closed, or ran out) goes back to the console.
+        if (get().leaveSupport()) return;
         setSessionCookie(false);
         setRemember(false);
         set({ accessToken: null, refreshToken: null, user: null });
       },
       setHydrated: () => set({ hydrated: true }),
+      enterSupport: (res) => {
+        const { accessToken, refreshToken, user } = get();
+        // Entering again from inside support mode keeps the original admin session.
+        if (!readReturn()) dynamicStorage.setItem(SUPPORT_RETURN_KEY, JSON.stringify({ accessToken, refreshToken, user }));
+        set({ accessToken: res.accessToken, refreshToken: res.refreshToken, user: res.user });
+      },
+      leaveSupport: () => {
+        const saved = readReturn();
+        if (!saved) return false;
+        dynamicStorage.removeItem(SUPPORT_RETURN_KEY);
+        set({ accessToken: saved.accessToken, refreshToken: saved.refreshToken, user: saved.user });
+        return true;
+      },
     }),
     {
       name: "edu.auth",

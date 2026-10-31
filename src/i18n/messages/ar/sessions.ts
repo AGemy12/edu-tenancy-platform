@@ -21,6 +21,13 @@ const sessions = {
     meetingUrl: "رابط الاجتماع",
     meetingUrlHint: "للرابط اليدوي فقط، روابط Zoom وMeet تُنشأ تلقائياً",
     notes: "ملاحظات بعد الجلسة",
+    meetingAccount: {
+      selfMissing: "لم تربط حساب {provider} بعد، والجلسة تُنشأ على حسابك. اربطه من الإعدادات أولاً، أو اختر رابطاً يدوياً.",
+      linkNow: "ربط الحساب",
+      teacherMissing:
+        "{name} لم يربط حساب {provider} بعد، والجلسة تُنشأ على حساب المدرس، فلن تُحجز حتى يربطه. اختر رابطاً يدوياً، أو ذكّره بالربط.",
+      disabled: "{provider} غير مُفعّل على المنصة بعد. اختر منصة أخرى أو رابطاً يدوياً.",
+    },
   },
   provider: {
     ZOOM: "Zoom",
@@ -52,6 +59,7 @@ const sessions = {
       PRESENT: "حاضر",
       LATE: "متأخر",
       ABSENT: "غائب",
+      EXCUSED: "غائب بعذر",
     },
     statusLabel: "الحضور",
     rating: "التقييم",

@@ -8,6 +8,7 @@ import { BanIcon, CalendarDaysIcon, CheckCircle2Icon, ClipboardCheckIcon, EyeIco
 import CrudPage from "@/components/crud-page";
 import SessionCalendar, { Segmented } from "@/components/sessions/session-calendar";
 import EvaluationDialog, { type EvaluationMode } from "@/components/sessions/evaluation-dialog";
+import { MeetingAccountNotice } from "@/components/sessions/meeting-account-notice";
 import type { RowAction } from "@/components/row-actions";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/hooks/use-auth";
@@ -15,6 +16,7 @@ import { useRowAction } from "@/hooks/use-resources";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useI18n } from "@/i18n/provider";
 import { api, getErrorMessage } from "@/lib/api";
+import { openMeeting } from "@/lib/open-meeting";
 import type { LiveSession, SessionProvider, SessionStatus } from "@/lib/types";
 import { sessionSchema, sessionUpdateSchema, toLocalDateTime } from "@/lib/schemas";
 
@@ -52,23 +54,11 @@ function Sessions() {
   // Suspended members read only: the API refuses every write and sends no meeting link.
   const suspended = user?.status === "SUSPENDED";
 
-  /**
-   * The API hands out the link (a fresh Zoom start link for the host; for students it also records
-   * attendance). The tab is opened before the request so the browser doesn't treat it as a popup.
-   */
-  async function openMeeting(id: string, action: "start" | "join") {
-    const tab = window.open("", "_blank");
+  async function enterMeeting(id: string, action: "start" | "join") {
     try {
-      const { data } = await api.post<{ url: string }>(`/sessions/${id}/${action}`);
-      if (tab) {
-        tab.opener = null;
-        tab.location.href = data.url;
-      } else {
-        window.location.assign(data.url);
-      }
+      await openMeeting(async () => (await api.post<{ url: string }>(`/sessions/${id}/${action}`)).data);
       qc.invalidateQueries({ queryKey: ["list"] });
     } catch (e) {
-      tab?.close();
       toast.error(getErrorMessage(e, t("sessions.toast.openFailed")));
     }
   }
@@ -90,12 +80,12 @@ function Sessions() {
       return actions;
     }
     if (open && isHost) {
-      actions.push({ label: t("sessions.actions.start"), icon: VideoIcon, onClick: () => openMeeting(r.id, "start") });
+      actions.push({ label: t("sessions.actions.start"), icon: VideoIcon, onClick: () => enterMeeting(r.id, "start") });
     } else if (open) {
       actions.push({
         label: isStudent ? t("sessions.actions.join") : t("sessions.actions.watch"),
         icon: isStudent ? LogInIcon : EyeIcon,
-        onClick: () => openMeeting(r.id, "join"),
+        onClick: () => enterMeeting(r.id, "join"),
       });
     }
     // Once a session has begun its teacher evaluates it (attendance, rating, homework…); students read
@@ -222,6 +212,7 @@ function Sessions() {
           { name: "description", label: t("fields.description"), type: "textarea" },
           { name: "notes", label: t("sessions.form.notes"), type: "textarea", editOnly: true },
         ]}
+        formNotice={(v, mode) => mode === "create" && <MeetingAccountNotice provider={v.provider} teacherId={v.teacherId} />}
         rowActions={actionsFor}
         extraActions={
           <Segmented<View>

@@ -32,7 +32,12 @@ export type AuthUser = {
   membershipId?: string | null;
   isPlatformAdmin?: boolean;
   memberships?: Membership[];
+  /** Support mode: a platform admin is working as this member. */
+  support?: SupportInfo | null;
 };
+
+/** The open support session behind the current sign-in (see SupportBanner). */
+export type SupportInfo = { sessionId: string; reason: string; expiresAt: string; actor: { fullName: string; email: string } };
 
 export type AuthResponse = {
   accessToken: string;
@@ -72,6 +77,8 @@ export type Teacher = {
   /** Its role is TENANT_ADMIN when the center admin teaches from their own account. */
   membership: MembershipLite;
   _count?: { courses: number; students: number; sessions: number; exams: number; schedules: number; billingRates: number };
+  /** Admins only: the meeting accounts this teacher linked (their Zoom and Meet sessions run on them). */
+  meetingAccounts?: { zoom: boolean; google: boolean };
 };
 
 export type Student = {
@@ -167,26 +174,308 @@ export type Exam = {
 /** GET /exams/:id/roster: one row per enrolled student. */
 export type ExamRosterRow = { studentId: string; name: string; score: number | null; feedback: string | null };
 
-export type MonthlyReport = {
-  studentId: string;
-  studentName: string;
-  month: string;
-  sessionsTotal: number;
-  sessionsAttended: number;
-  sessionsLate: number;
-  attendanceRate: number;
-  examsCount: number;
-  averageScore: number | null;
-  /** Mean session rating (1–10) from the teachers' evaluations. */
+/* ───────── Reports (GET /reports/…) ───────── */
+
+/** What one student's seat on one session counts as (see backend reports/report-rules.ts). */
+export type Outcome = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED" | "UNRECORDED" | "UPCOMING" | "CANCELED" | "MISSED";
+export type OutcomeCounts = Record<Outcome, number>;
+export type RiskFlag = "LOW_ATTENDANCE" | "ABSENCE_STREAK" | "LOW_SCORES" | "LOW_RATING";
+
+/** A period of days in the center's time zone, both days included. */
+export type ReportPeriod = { from: string; to: string; days: number; timezone: string };
+
+export type ReportHead = {
+  generatedAt: string;
+  period: ReportPeriod;
+  center: { name: string; currency: string };
+  filters: { teacher: { id: string; name: string } | null; course: { id: string; title: string } | null };
+};
+
+export type SeatStats = {
+  counts: OutcomeCounts;
+  held: number;
+  /** 0..1; null until something counts. */
+  attendanceRate: number | null;
+  punctualityRate: number | null;
+  heldMinutes: number;
+  attendedMinutes: number;
   averageRating: number | null;
+};
+
+export type TrendPoint = { from: string; to: string; sessions: number; minutes: number; counts: OutcomeCounts; attendanceRate: number | null };
+export type Trend = { unit: "day" | "week" | "month"; points: TrendPoint[] };
+
+/** A teacher's (or course's) sessions over the period. */
+export type SessionStats = {
+  sessions: number;
+  held: number;
+  upcoming: number;
+  live: number;
+  completed: number;
+  canceled: number;
+  missed: number;
+  heldMinutes: number;
+  actualMinutes: number | null;
+  startsRecorded: number;
+  onTime: number;
+  onTimeRate: number | null;
+  averageDelay: number | null;
+  evaluationsDue: number;
+  evaluated: number;
+  evaluationRate: number | null;
+  students: number;
+  counts: OutcomeCounts;
+  attendanceRate: number | null;
+  averageRating: number | null;
+};
+
+export type ExamStats = {
+  id: string;
+  title: string;
+  /** "YYYY-MM" */
+  month: string;
+  status: string;
+  course: { id: string; title: string };
+  totalMarks: number;
+  results: number;
+  average: number | null;
+  highest: number | null;
+  lowest: number | null;
+  /** Scores per band: <50, 50–64, 65–74, 75–84, 85+. */
+  distribution: number[];
+};
+
+export type StudentRow = SeatStats & {
+  id: string;
+  name: string;
+  grade: string | null;
+  status: AccountStatus;
+  examAverage: number | null;
+  exams: number;
+  flags: RiskFlag[];
+  streak: number;
+};
+
+type EnrollmentState = "ACTIVE" | "COMPLETED" | "DROPPED";
+
+export type StudentReport = ReportHead & {
+  kind: "student";
+  student: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    grade: string | null;
+    parentPhone: string | null;
+    status: AccountStatus;
+    memberSince: string;
+    teachers: string[];
+    courses: { id: string; title: string; teacher: string; status: EnrollmentState; enrolledAt: string }[];
+  };
+  summary: SeatStats & {
+    seats: number;
+    counted: number;
+    streak: number;
+    longestStreak: number;
+    sessions: number;
+    homework: number;
+    exams: { count: number; average: number | null };
+  };
+  previous: { from: string; to: string; attendanceRate: number | null; averageRating: number | null; examAverage: number | null };
+  flags: RiskFlag[];
+  days: { date: string; outcomes: Outcome[] }[];
+  trend: Trend;
+  sessions: {
+    id: string;
+    title: string;
+    status: SessionStatus;
+    startAt: string;
+    endAt: string;
+    minutes: number;
+    outcome: Outcome;
+    joinedAt: string | null;
+    teacher: { id: string; name: string };
+    course: { id: string; title: string } | null;
+    rating: number | null;
+    progress: string | null;
+    homework: string | null;
+    comment: string | null;
+  }[];
+  courses: (SeatStats & { id: string | null; title: string | null; teacher: string; examAverage: number | null })[];
+  exams: {
+    id: string;
+    title: string;
+    month: string;
+    course: { id: string; title: string };
+    teacher: string;
+    score: number;
+    totalMarks: number;
+    percent: number;
+    groupAverage: number | null;
+    groupSize: number;
+    feedback: string | null;
+    gradedAt: string;
+  }[];
+  finance: {
+    currency: string;
+    sessions: number;
+    minutes: number;
+    fees: number;
+    missingRates: number;
+    courses: { id: string | null; title: string | null; sessions: number; minutes: number; fees: number }[];
+  } | null;
+};
+
+export type StudentsReport = ReportHead & {
+  kind: "students";
+  summary: SeatStats & { students: number; active: number; flagged: number; examAverage: number | null };
+  students: StudentRow[];
+};
+
+export type AlertsReport = ReportHead & {
+  kind: "alerts";
+  students: StudentRow[];
+  unevaluated: {
+    id: string;
+    title: string;
+    startAt: string;
+    teacher: { id: string; name: string };
+    course: { id: string; title: string } | null;
+    students: number;
+    pending: number;
+  }[];
+};
+
+export type RegisterReport = ReportHead & {
+  kind: "register";
+  summary: SeatStats & { sessions: number; students: number };
+  sessions: {
+    id: string;
+    title: string;
+    status: SessionStatus;
+    startAt: string;
+    day: string;
+    teacher: { id: string; name: string };
+    course: { id: string; title: string } | null;
+    counts: OutcomeCounts;
+    attendanceRate: number | null;
+  }[];
+  students: (SeatStats & { id: string; name: string; cells: (Outcome | null)[] })[];
+};
+
+export type TeachersReport = ReportHead & {
+  kind: "teachers";
+  summary: SessionStats;
+  teachers: (SessionStats & { id: string; name: string; linkedStudents: number })[];
+};
+
+export type TeacherReport = ReportHead & {
+  kind: "teacher";
+  teacher: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    subjects: string[];
+    status: AccountStatus;
+    memberSince: string;
+    linkedStudents: number;
+    courses: number;
+  };
+  summary: SessionStats;
+  trend: Trend;
+  students: (SeatStats & { id: string; name: string })[];
+  courses: (SessionStats & { id: string | null; title: string | null })[];
+  exams: ExamStats[];
+  sessions: {
+    id: string;
+    title: string;
+    status: SessionStatus;
+    startAt: string;
+    endAt: string;
+    minutes: number;
+    actualMinutes: number | null;
+    delay: number | null;
+    course: { id: string; title: string } | null;
+    students: number;
+    counts: OutcomeCounts;
+    evaluated: boolean | null;
+  }[];
+  pay: { currency: string; sessions: number; minutes: number; teacherPay: number; fees?: number } | null;
+};
+
+export type CoursesReport = ReportHead & {
+  kind: "courses";
+  courses: (SessionStats & {
+    id: string;
+    title: string;
+    subject: string | null;
+    isActive: boolean;
+    teacher: { id: string; name: string };
+    enrollments: { active: number; completed: number; dropped: number };
+    examAverage: number | null;
+    examResults: number;
+  })[];
+};
+
+export type CourseReport = ReportHead & {
+  kind: "course";
+  course: {
+    id: string;
+    title: string;
+    subject: string | null;
+    level: string | null;
+    isActive: boolean;
+    teacher: { id: string; name: string };
+    enrollments: { active: number; completed: number; dropped: number };
+  };
+  summary: SessionStats & { examAverage: number | null; examResults: number };
+  trend: Trend;
+  sessions: {
+    id: string;
+    title: string;
+    status: SessionStatus;
+    startAt: string;
+    minutes: number;
+    students: number;
+    counts: OutcomeCounts;
+    attendanceRate: number | null;
+  }[];
+  exams: ExamStats[];
+  students: (SeatStats & { id: string; name: string; enrollment: EnrollmentState | null; examAverage: number | null; flags: RiskFlag[] })[];
+};
+
+export type CenterKpis = SessionStats & {
+  students: number;
+  newStudents: number;
+  activeStudents: number;
+  teachers: number;
+  activeTeachers: number;
+  examAverage: number | null;
+  examResults: number;
+};
+
+export type CenterFinance = { currency: string; fees: number; teacherPay: number; platformFee: number | null; net: number | null; missingRates: number };
+
+export type CenterReport = ReportHead & {
+  kind: "center";
+  previous: { from: string; to: string };
+  kpis: CenterKpis & { flaggedStudents: number };
+  previousKpis: CenterKpis;
+  finance: CenterFinance | null;
+  previousFinance: CenterFinance | null;
+  trend: Trend;
+  teachers: (SessionStats & { id: string; name: string })[];
+  courses: (SessionStats & { id: string; title: string; teacher: string })[];
+  atRisk: { id: string; name: string; flags: RiskFlag[]; attendanceRate: number | null; streak: number; examAverage: number | null }[];
 };
 
 /* ───────── Session billing ───────── */
 
 export type RateKind = "STUDENT_FEE" | "TEACHER_PAY";
-export type RateBasis = "PER_HOUR" | "PERCENT";
-/** Which tier of the rate card priced a line: a student's own rate, the course's, or the teacher's default. */
-export type RateSource = "STUDENT" | "COURSE" | "TEACHER";
+export type RateBasis = "PER_HOUR" | "PER_SESSION" | "PERCENT";
+/** Which tier of the rate card priced a line: a student's own rate, the course's, one teacher's, or the center default. */
+export type RateSource = "STUDENT" | "COURSE" | "TEACHER" | "CENTER";
 
 /** Totals over every session matching the filters (not only the current page). */
 export type BillingTotals = {
@@ -200,6 +489,7 @@ export type BillingTotals = {
   /** Admins and teachers only. */
   teacherPay?: number;
   /** Admins only, and only when every student of the sessions is included. */
+  platformFee?: number;
   net?: number;
   missingRates: number;
   unconfirmed: number;
@@ -212,6 +502,7 @@ export type BillingStudentLine = {
   joinedAt: string | null;
   minutes: number;
   rate: number | null;
+  rateBasis: RateBasis | null;
   rateSource: RateSource | null;
   fee: number;
 };
@@ -235,11 +526,14 @@ export type BillingSessionRow = {
   students: BillingStudentLine[];
   fees: number;
   teacherPay?: { amount: number; basis: RateBasis; rate: number; source: RateSource } | null;
+  platformFee?: number;
   net?: number;
 };
 
 export type BillingSessionsPage = {
   currency: string;
+  /** Admins only: the platform's commission on this center, null when none. */
+  platformFeePercent?: number | null;
   totals: BillingTotals;
   page: number;
   pageSize: number;
@@ -251,9 +545,70 @@ export type BillingGroupBy = "teacher" | "student" | "course" | "month";
 
 export type BillingSummary = {
   currency: string;
+  platformFeePercent?: number | null;
   groupBy: BillingGroupBy;
   totals: BillingTotals;
-  groups: { key: string; label: string | null; sessions: number; minutes: number; fees: number; teacherPay?: number; net?: number }[];
+  groups: { key: string; label: string | null; sessions: number; minutes: number; fees: number; teacherPay?: number; platformFee?: number; net?: number }[];
+};
+
+/** Super admin: GET /billing/platform — what the platform earns from each center over a period. */
+export type PlatformBilling = {
+  from: string;
+  to: string;
+  totals: { currency: string; centers: number; withFee: number; sessions: number; fees: number; platformFee: number }[];
+  tenants: {
+    id: string;
+    name: string;
+    slug: string;
+    status: "ACTIVE" | "SUSPENDED";
+    currency: string;
+    platformFeePercent: number | null;
+    sessions: number;
+    fees: number;
+    platformFee: number;
+    subscription: { status: SubscriptionStatus; expired: boolean; plan: { nameAr: string; nameEn: string; priceMonthly: number | null; currency: string } } | null;
+  }[];
+};
+
+/** One month of recurring revenue in one currency: start + new + expansion − contraction − churned = mrr. */
+export type MrrMonth = { month: string; start: number; mrr: number; new: number; expansion: number; contraction: number; churned: number; paying: number };
+
+/** Super admin: GET /platform/metrics */
+export type PlatformMetrics = {
+  asOf: string;
+  currencies: { currency: string; mrr: number; arr: number; paying: number; arpa: number; revenueChurn: number | null; months: MrrMonth[] }[];
+  logos: { paying: number; churn: number | null; months: { month: string; start: number; paying: number; gained: number; lost: number }[] };
+  trials: { windowDays: number; started: number; converted: number; lost: number; open: number; rate: number | null };
+};
+
+export type HealthRiskCode = "PAST_DUE" | "NEVER_ACTIVE" | "INACTIVE" | "TRIAL_STALLED" | "NO_SESSIONS" | "SESSIONS_DROP" | "ENDING_SOON";
+export type HealthGrowthCode = "TEACHERS_LIMIT" | "STUDENTS_LIMIT" | "STORAGE_LIMIT" | "TRIAL_ENGAGED";
+type Usage = { used: number; max: number };
+
+export type CenterHealth = {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  plan: { nameAr: string; nameEn: string };
+  subscription: { status: SubscriptionStatus; currentPeriodEnd: string | null };
+  mrr: { amount: number; currency: string } | null;
+  lastActiveAt: string | null;
+  sessions30: number;
+  sessionsPrev30: number;
+  usage: { teachers: Usage; students: Usage; storage: Usage };
+  risk: { code: HealthRiskCode; value?: number }[];
+  severity: "high" | "medium" | null;
+  growth: { code: HealthGrowthCode; value?: number }[];
+};
+
+/** Super admin: GET /platform/health */
+export type PlatformHealth = {
+  asOf: string;
+  assessed: number;
+  atRisk: CenterHealth[];
+  growth: CenterHealth[];
+  thresholds: { inactiveDays: number; graceDays: number; trialStalledDays: number; dropRatio: number; dropMinPrevious: number; endingDays: number; limitRatio: number; engagedTrialSessions: number };
 };
 
 export type BillingOptions = {
@@ -272,7 +627,8 @@ export type BillingRate = {
   note: string | null;
   source: RateSource;
   state?: "ACTIVE" | "SCHEDULED" | "SUPERSEDED";
-  teacher: { id: string; name: string };
+  /** Always set for teacher pay; for a student price only when it's for one teacher's sessions. */
+  teacher: { id: string; name: string } | null;
   course: { id: string; title: string } | null;
   student: { id: string; name: string } | null;
 };
@@ -295,6 +651,8 @@ export type TenantMe = {
   status: "ACTIVE" | "SUSPENDED";
   timezone: string;
   currency: string;
+  /** Signed link (relative to the API) to the logo printed on reports; null when there is none. */
+  logoUrl: string | null;
   /** Canceled or past its period: the API only allows reads. */
   subscriptionExpired: boolean;
   subscription: {
@@ -307,6 +665,8 @@ export type TenantMe = {
 type IntegrationAccount = { email: string | null; connectedAt: string } | null;
 
 export type IntegrationStatus = {
+  /** Only a member who teaches here links an account (sessions run on their teacher's); anyone may disconnect one. */
+  canLink: boolean;
   google: { configured: boolean; account: IntegrationAccount };
   zoom: { configured: boolean; account: IntegrationAccount };
 };
@@ -474,7 +834,7 @@ export type CourseDetail = Course & {
   enrollments: { studentId: string; status: string; student: { id: string; user: { fullName: string; email: string } } }[];
 };
 
-export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT";
+export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
 
 /** A student in a session, with the teacher's evaluation once it's recorded. */
 export type SessionAttendee = {
@@ -499,6 +859,9 @@ export type PlatformTenant = {
   name: string;
   slug: string;
   status: "ACTIVE" | "SUSPENDED";
+  currency: string;
+  /** The platform's commission on the center's student fees; null = none. */
+  platformFeePercent: number | null;
   createdAt: string;
   subscriptionExpired: boolean;
   subscription: {
@@ -511,6 +874,65 @@ export type PlatformTenant = {
   owner: { fullName: string; email: string; lastLoginAt: string | null } | null;
   storageBytes: number;
   _count: { memberships: number; teachers: number; students: number; courses: number; sessions: number };
+};
+
+/** Super admin: POST /tenants */
+export type CreateTenantInput = {
+  name: string;
+  slug: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone?: string;
+  planId: string;
+  status: "TRIALING" | "ACTIVE";
+  currentPeriodEnd: string | null;
+};
+
+/** Super admin: GET /support/sessions */
+export type SupportSessionRow = {
+  id: string;
+  reason: string;
+  startedAt: string;
+  expiresAt: string;
+  endedAt: string | null;
+  active: boolean;
+  targetName: string;
+  targetEmail: string;
+  targetRole: Role;
+  actor: { fullName: string; email: string };
+  tenant: { id: string; name: string; slug: string };
+  actions: number;
+};
+
+export type SupportAction = { id: string; method: string; path: string; status: number; createdAt: string };
+
+/** Where a support request stands (EXPIRED: unanswered in time, or past its approved window). */
+export type SupportRequestState = "PENDING" | "APPROVED" | "DENIED" | "CANCELED" | "REVOKED" | "EXPIRED";
+
+/** The platform asks a center to let support in; the center's admin decides. */
+export type SupportRequest = {
+  id: string;
+  tenantId: string;
+  membershipId: string | null;
+  targetName: string;
+  targetEmail: string;
+  targetRole: Role;
+  reason: string;
+  minutes: number;
+  state: SupportRequestState;
+  createdAt: string;
+  decidedAt: string | null;
+  accessUntil: string | null;
+  requestedBy: { fullName: string; email: string };
+  decidedBy: { fullName: string } | null;
+};
+
+/** Super admin: GET /support/requests */
+export type PlatformSupportRequest = SupportRequest & { sessions: number };
+
+/** Center admin: GET /support/access, each request with the sessions support opened under it. */
+export type CenterSupportRequest = SupportRequest & {
+  sessions: { id: string; startedAt: string; expiresAt: string; endedAt: string | null; active: boolean; actions: number; actor: { fullName: string } }[];
 };
 
 /** Super admin: GET /tenants/overview */
@@ -532,6 +954,7 @@ export type PlatformTenantDetail = {
   status: "ACTIVE" | "SUSPENDED";
   timezone: string;
   currency: string;
+  platformFeePercent: number | null;
   createdAt: string;
   subscriptionExpired: boolean;
   subscription: {
@@ -588,3 +1011,153 @@ export type AdminPlan = {
   /** Centers on this package. */
   tenants: number;
 };
+
+/* ── Notifications ── */
+
+export type NotificationCategory = "SESSIONS" | "EXAMS" | "LIBRARY" | "PEOPLE" | "ACCOUNT" | "SUBSCRIPTION" | "SUPPORT" | "PLATFORM" | "ANNOUNCEMENTS" | "ACTIVITY";
+
+export type NotificationType =
+  | "SESSION_SCHEDULED"
+  | "SESSION_RESCHEDULED"
+  | "SESSION_CANCELED"
+  | "SESSION_LIVE"
+  | "SESSION_REMINDER"
+  | "SESSION_EVALUATED"
+  | "SCHEDULE_CREATED"
+  | "EXAM_PUBLISHED"
+  | "EXAM_GRADED"
+  | "FILES_SHARED"
+  | "TEACHER_ASSIGNED"
+  | "STUDENT_ASSIGNED"
+  | "ACCOUNT_STATUS"
+  | "SUBSCRIPTION_CHANGED"
+  | "SUBSCRIPTION_EXPIRING"
+  | "SUBSCRIPTION_EXPIRED"
+  | "SUPPORT_REQUESTED"
+  | "SUPPORT_DECIDED"
+  | "TENANT_REGISTERED"
+  | "ANNOUNCEMENT"
+  | "MEMBER_ADDED"
+  | "MEETING_ACCOUNT_NEEDED";
+
+/** Stored as a type plus values; the text is rendered here, in the page's language. */
+export type AppNotification = {
+  id: string;
+  type: NotificationType;
+  category: NotificationCategory;
+  params: Record<string, string | number>;
+  link: string | null;
+  /** A center admin's copy of something that happened to others (category ACTIVITY), told in the third person. */
+  oversight: boolean;
+  readAt: string | null;
+  createdAt: string;
+  actor: { fullName: string } | null;
+};
+
+export type NotificationPage = { items: AppNotification[]; nextCursor: string | null; unread: number };
+
+export type NotificationPreference = {
+  category: NotificationCategory;
+  inApp: boolean;
+  email: boolean;
+  /** In-app can't be turned off. */
+  locked: boolean;
+  /** Nothing in this category is ever emailed. */
+  emailAvailable: boolean;
+};
+
+export type AnnouncementAudience = "EVERYONE" | "ADMINS" | "TEACHERS" | "STUDENTS";
+
+export type Announcement = {
+  id: string;
+  audience: AnnouncementAudience;
+  title: string;
+  body: string;
+  recipients: number;
+  createdAt: string;
+  author: { fullName: string } | null;
+};
+
+/* ── Messages ── */
+
+export type CallStatus = "RINGING" | "ACTIVE" | "ENDED" | "MISSED";
+
+/** A call placed from a teacher–student chat during their session (never carries its link). */
+export type ChatCall = {
+  id: string;
+  sessionId: string;
+  callerId: string;
+  status: CallStatus;
+  answeredAt: string | null;
+  endedAt: string | null;
+  createdAt: string;
+};
+
+/** GET /conversations/:id/call: the session a call would join now (null: calling is closed), and the call to rejoin. */
+export type CallState = {
+  session: { id: string; title: string; startAt: string; endAt: string; status: SessionStatus } | null;
+  call: ChatCall | null;
+  earlyMinutes: number;
+  graceMinutes: number;
+};
+
+export type ChatMessage = {
+  id: string;
+  conversationId: string;
+  kind: "TEXT" | "SYSTEM" | "CALL";
+  body: string;
+  /** SYSTEM messages: { event, actor, title?, member?, members? }. */
+  params: Record<string, unknown> | null;
+  senderId: string | null;
+  sender: { fullName: string; role: Role } | null;
+  clientId: string | null;
+  replyTo: { id: string; body: string; deleted: boolean; senderName: string | null } | null;
+  editedAt: string | null;
+  deletedAt: string | null;
+  createdAt: string;
+  /** CALL messages: the call the card shows. */
+  call?: ChatCall | null;
+  /** Client only: still on its way, or failed to send. */
+  pending?: "sending" | "failed";
+};
+
+export type ChatPeer = {
+  membershipId: string;
+  fullName: string;
+  role: Role;
+  blocked: boolean;
+  lastReadAt: string | null;
+  lastSeenAt: string | null;
+  online: boolean;
+};
+
+export type Conversation = {
+  id: string;
+  kind: "DIRECT" | "GROUP";
+  title: string | null;
+  course: { id: string; title: string } | null;
+  adminsOnly: boolean;
+  memberCount: number;
+  lastMessageAt: string;
+  isAdmin: boolean;
+  unreadCount: number;
+  lastReadAt: string | null;
+  muted: boolean;
+  archived: boolean;
+  peer: ChatPeer | null;
+  lastMessage: ChatMessage | null;
+};
+
+export type ChatParticipant = {
+  membershipId: string;
+  fullName: string;
+  role: Role;
+  isAdmin: boolean;
+  lastReadAt: string | null;
+  lastSeenAt: string | null;
+  online: boolean;
+};
+
+export type ConversationDetail = Conversation & { participants: ChatParticipant[] };
+
+export type ChatContact = { membershipId: string; fullName: string; role: Role; online: boolean };

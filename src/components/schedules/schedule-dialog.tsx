@@ -13,6 +13,7 @@ import { Field, FieldDescription, FieldError, FieldLegend, FieldSet } from "@/co
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SelectField, TextField } from "@/components/form-fields";
+import { MeetingAccountNotice } from "@/components/sessions/meeting-account-notice";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { useList } from "@/hooks/use-resources";
 import { useI18n } from "@/i18n/provider";
@@ -226,6 +227,7 @@ function ScheduleForm({ studentId, onDone }: { studentId?: string; onDone: () =>
             placeholder="https://…"
           />
         )}
+        <MeetingAccountNotice provider={values.provider} teacherId={values.teacherId} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

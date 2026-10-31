@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarDaysIcon, CheckCircle2Icon, Loader2Icon, VideoIcon, type LucideIcon } from "lucide-react";
+import { CalendarDaysIcon, CheckCircle2Icon, InfoIcon, Loader2Icon, UsersIcon, VideoIcon, type LucideIcon } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +12,12 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import CenterSettings from "@/components/settings/center-settings";
+import CenterSettings, { CenterLogo } from "@/components/settings/center-settings";
+import { SupportAccess } from "@/components/settings/support-access";
 import { SettingsHeader, SettingsSection } from "@/components/settings-section";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { useIntegrations } from "@/hooks/use-resources";
+import { Link } from "@/i18n/navigation";
 import { useT } from "@/i18n/provider";
 import { api, getErrorMessage } from "@/lib/api";
 
@@ -68,23 +70,63 @@ function SettingsContent() {
         <>
           <CenterSettings />
           <Separator />
+          <CenterLogo />
+          <Separator />
+          {/* Support decides nothing about its own access. */}
+          {!user.support && (
+            <>
+              <SupportAccess />
+              <Separator />
+            </>
+          )}
         </>
       )}
 
-      <SettingsSection title={t("settings.integrations")} description={t("settings.integrationsDescription")}>
-        <Card className="gap-0 py-0">
-          <ul className="divide-y">
-            {PROVIDERS.map((p) => (
-              <IntegrationRow key={p.provider} {...p} />
-            ))}
-          </ul>
-        </Card>
-      </SettingsSection>
+      {(user?.role === "TENANT_ADMIN" || user?.role === "TEACHER") && <MeetingAccounts />}
     </div>
   );
 }
 
-function IntegrationRow({ provider, name, icon: Icon, tint }: (typeof PROVIDERS)[number]) {
+/**
+ * Sessions are created on their teacher's own account, so the teacher links it. An admin who
+ * doesn't teach has nothing to link: they're pointed to the teachers page, and can only
+ * disconnect an account linked before.
+ */
+function MeetingAccounts() {
+  const t = useT();
+  const status = useIntegrations();
+  const canLink = status.data?.canLink ?? true;
+  const rows = canLink ? PROVIDERS : PROVIDERS.filter((p) => status.data?.[p.provider].account);
+
+  return (
+    <SettingsSection title={t("settings.integrations")} description={t(canLink ? "settings.integrationsDescription" : "settings.adminDescription")}>
+      {!canLink && (
+        <Alert>
+          <InfoIcon />
+          <AlertDescription className="space-y-3">
+            <p>{t("settings.adminNote")}</p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/teachers">
+                <UsersIcon data-icon="inline-start" /> {t("settings.adminTeachers")}
+              </Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      {rows.length > 0 && (
+        <Card className="gap-0 py-0">
+          <ul className="divide-y">
+            {rows.map((p) => (
+              <IntegrationRow key={p.provider} {...p} canLink={canLink} />
+            ))}
+          </ul>
+        </Card>
+      )}
+    </SettingsSection>
+  );
+}
+
+function IntegrationRow({ provider, name, icon: Icon, tint, canLink }: (typeof PROVIDERS)[number] & { canLink: boolean }) {
   const t = useT();
   const qc = useQueryClient();
   const status = useIntegrations();
@@ -137,6 +179,7 @@ function IntegrationRow({ provider, name, icon: Icon, tint }: (typeof PROVIDERS)
             </p>
           )}
           {unavailable && <p className="text-xs text-muted-foreground">{t("settings.notConfigured")}</p>}
+          {!canLink && info?.account && <p className="text-xs text-muted-foreground">{t("settings.unusedAccount")}</p>}
         </div>
       </div>
       <div className="shrink-0 ps-14.5 sm:ps-0">
@@ -147,7 +190,7 @@ function IntegrationRow({ provider, name, icon: Icon, tint }: (typeof PROVIDERS)
             {busy && <Loader2Icon className="animate-spin" />}
             {t("settings.disconnect")}
           </Button>
-        ) : unavailable ? null : (
+        ) : unavailable || !canLink ? null : (
           <Button onClick={connect} disabled={busy}>
             {busy && <Loader2Icon className="animate-spin" />}
             {t(`settings.${provider}.connect`)}

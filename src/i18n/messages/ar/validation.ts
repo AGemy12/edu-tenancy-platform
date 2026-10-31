@@ -25,7 +25,7 @@ const validation = {
   courseOrStudent: "اختر كورساً أو طالباً واحداً على الأقل",
   chooseStatus: "اختر الحالة",
   chooseRateKind: "اختر نوع السعر",
-  percentOnlyTeacherPay: "النسبة المئوية لأجر المدرس فقط، سعر الطالب بالساعة",
+  percentOnlyTeacherPay: "النسبة المئوية لأجر المدرس فقط، سعر الطالب بالساعة أو بالجلسة",
   percentMax: "النسبة يجب ألا تتجاوز 100",
   teacherPayNoStudent: "أجر المدرس لا يُحدد لطالب بعينه",
   range: "{label} يجب أن يكون رقماً بين {min} و {max}",

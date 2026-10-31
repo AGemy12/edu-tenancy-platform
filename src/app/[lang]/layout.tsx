@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { lang } from "next/root-params";
-import { Readex_Pro } from "next/font/google";
+import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import "../globals.css";
 import { Providers } from "@/components/providers";
 import { dirOf, isLocale, locales } from "@/i18n/config";
@@ -9,7 +9,7 @@ import { getMessages } from "@/i18n/messages";
 import { getI18n } from "@/i18n/server";
 import { cn } from "@/lib/utils";
 
-const fontSans = Readex_Pro({
+const fontSans = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",

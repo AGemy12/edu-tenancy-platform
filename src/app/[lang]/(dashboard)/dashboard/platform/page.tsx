@@ -14,6 +14,9 @@ import {
   WalletIcon,
   type LucideIcon,
 } from "lucide-react";
+import { CenterHealth } from "@/components/platform/center-health";
+import { PlatformEarnings } from "@/components/platform/platform-earnings";
+import { SaasMetrics } from "@/components/platform/saas-metrics";
 import TenantSheet from "@/components/platform/tenant-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,6 +62,12 @@ export default function PlatformHomePage() {
       </div>
 
       <Kpis data={overview.data} />
+
+      <SaasMetrics />
+
+      <CenterHealth onOpen={setViewing} />
+
+      <PlatformEarnings onOpen={setViewing} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ExpiringSoon data={overview.data} onOpen={setViewing} />

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { SaveFooter, SettingsSection } from "@/components/settings-section";
+import { ImageIcon, Loader2Icon, Trash2Icon, UploadIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -12,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { authKeys } from "@/hooks/use-auth";
 import { useTenantMe } from "@/hooks/use-resources";
 import { useI18n, useT } from "@/i18n/provider";
-import { api, getErrorMessage } from "@/lib/api";
+import { API_URL, api, getErrorMessage } from "@/lib/api";
 import type { TenantMe } from "@/lib/types";
 
 /** Zones and currencies of the region first; the center's current value is always offered too. */
@@ -146,5 +148,85 @@ function CenterForm({ tenant }: { tenant: TenantMe }) {
         <SaveFooter dirty={changed} disabled={!changed || name.trim().length < 2} pending={save.isPending} />
       </form>
     </Card>
+  );
+}
+
+const LOGO_TYPES = "image/png,image/jpeg,image/webp";
+const LOGO_MAX_MB = 2;
+
+/** The center's logo, printed beside the platform's brand on every PDF report. */
+export function CenterLogo() {
+  const { t, format } = useI18n();
+  const qc = useQueryClient();
+  const tenant = useTenantMe();
+  const input = useRef<HTMLInputElement>(null);
+
+  const onSaved = (data: TenantMe) => qc.setQueryData(["tenant", "me"], data);
+  const upload = useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return (await api.post<TenantMe>("/tenants/me/logo", form, { headers: { "Content-Type": "multipart/form-data" } })).data;
+    },
+    onSuccess: (data) => {
+      onSaved(data);
+      toast.success(t("settings.logo.saved"));
+    },
+    onError: (e) => toast.error(getErrorMessage(e, t("common.toast.saveFailed"))),
+  });
+  const remove = useMutation({
+    mutationFn: async () => (await api.delete<TenantMe>("/tenants/me/logo")).data,
+    onSuccess: (data) => {
+      onSaved(data);
+      toast.success(t("settings.logo.removed"));
+    },
+    onError: (e) => toast.error(getErrorMessage(e, t("common.toast.deleteFailed"))),
+  });
+
+  const pick = (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > LOGO_MAX_MB * 1024 * 1024) {
+      toast.error(t("settings.logo.tooLarge", { mb: format.number(LOGO_MAX_MB) }));
+      return;
+    }
+    upload.mutate(file);
+  };
+
+  if (!tenant.isPending && !tenant.data) return null;
+  const url = tenant.data?.logoUrl;
+  const busy = upload.isPending || remove.isPending;
+  return (
+    <SettingsSection title={t("settings.logo.title")} description={t("settings.logo.description")}>
+      <Card>
+        <CardContent className="flex flex-col gap-5 pt-2 sm:flex-row sm:items-center">
+          <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-muted/40">
+            {tenant.isPending ? (
+              <Skeleton className="size-full" />
+            ) : url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a signed API link, not a static asset
+              <img src={`${API_URL}${url}`} alt={t("settings.logo.alt")} className="max-h-20 max-w-20 object-contain" />
+            ) : (
+              <ImageIcon className="size-8 text-muted-foreground" aria-hidden="true" />
+            )}
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t("settings.logo.hint", { mb: format.number(LOGO_MAX_MB) })}</p>
+            <div className="flex flex-wrap gap-2">
+              <input ref={input} type="file" accept={LOGO_TYPES} className="sr-only" tabIndex={-1} onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+              <Button type="button" variant="outline" disabled={busy || tenant.isPending} onClick={() => input.current?.click()}>
+                {upload.isPending ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : <UploadIcon data-icon="inline-start" />}
+                {t(url ? "settings.logo.replace" : "settings.logo.upload")}
+              </Button>
+              {url && (
+                <Button type="button" variant="ghost" className="text-destructive hover:text-destructive" disabled={busy} onClick={() => remove.mutate()}>
+                  <Trash2Icon data-icon="inline-start" />
+                  {t("settings.logo.remove")}
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </SettingsSection>
   );
 }

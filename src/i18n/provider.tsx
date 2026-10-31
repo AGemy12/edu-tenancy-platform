@@ -14,7 +14,11 @@ function createFormatters(locale: Locale) {
     return (value: DateInput) => f.format(new Date(value));
   };
   const numberFmt = new Intl.NumberFormat(tag);
+  const percentFmt = new Intl.NumberFormat(tag, { style: "percent", maximumFractionDigits: 1 });
+  const compactFmt = new Intl.NumberFormat(tag, { notation: "compact", maximumFractionDigits: 1 });
   const listFmt = new Intl.ListFormat(tag, { type: "conjunction" });
+  const relativeFmt = new Intl.RelativeTimeFormat(tag, { numeric: "auto" });
+  const shortDate = new Intl.DateTimeFormat(tag, { day: "numeric", month: "short", year: "numeric" });
   const weekdayFmts = {
     long: new Intl.DateTimeFormat(tag, { weekday: "long", timeZone: "UTC" }),
     short: new Intl.DateTimeFormat(tag, { weekday: "short", timeZone: "UTC" }),
@@ -25,11 +29,12 @@ function createFormatters(locale: Locale) {
     return (from: DateInput, to: DateInput) => f.formatRange(new Date(from), new Date(to));
   };
   const moneyFmts = new Map<string, Intl.NumberFormat>();
-  const moneyFmt = (currency: string) => {
-    let f = moneyFmts.get(currency);
+  const moneyFmt = (currency: string, signed: boolean) => {
+    const key = signed ? `${currency}±` : currency;
+    let f = moneyFmts.get(key);
     if (!f) {
-      f = new Intl.NumberFormat(tag, { style: "currency", currency, maximumFractionDigits: 2 });
-      moneyFmts.set(currency, f);
+      f = new Intl.NumberFormat(tag, { style: "currency", currency, maximumFractionDigits: 2, signDisplay: signed ? "exceptZero" : "auto" });
+      moneyFmts.set(key, f);
     }
     return f;
   };
@@ -43,11 +48,21 @@ function createFormatters(locale: Locale) {
     /** 12 October 2026 at 5:30 PM */
     longDateTime: fmt({ dateStyle: "long", timeStyle: "short" }),
     time: fmt({ hour: "numeric", minute: "2-digit" }),
+    /** "1 November 2026" for a calendar day from the API ("2026-11-01"), whatever the viewer's zone. */
+    dayUtc: fmt({ day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }),
     /** October 2026 */
     month: fmt({ month: "long", year: "numeric" }),
+    /** "Oct 26"; a UTC month such as "2026-10" from the API. */
+    monthShort: fmt({ month: "short", year: "2-digit", timeZone: "UTC" }),
+    /** "October 2026"; a UTC month such as "2026-10" from the API. */
+    monthUtc: fmt({ month: "long", year: "numeric", timeZone: "UTC" }),
     number: (n: number) => numberFmt.format(n),
-    /** 1,250.50 EGP in the locale's currency style; `currency` is an ISO 4217 code. */
-    money: (n: number, currency: string) => moneyFmt(currency).format(n),
+    /** 0.125 → 12.5% */
+    percent: (n: number) => percentFmt.format(n),
+    /** 12,500 → 12.5K, for chart axes. */
+    compact: (n: number) => compactFmt.format(n),
+    /** 1,250.50 EGP in the locale's currency style; `currency` is an ISO 4217 code. `signed` shows + or − (not on zero). */
+    money: (n: number, currency: string, signed = false) => moneyFmt(currency, signed).format(n),
     /** 0 = Sunday … 6 = Saturday → the day's name (1 Jan 2023 was a Sunday). */
     weekday: (day: number, style: keyof typeof weekdayFmts = "long") => weekdayFmts[style].format(Date.UTC(2023, 0, 1 + day)),
     /** 5 PM */
@@ -60,6 +75,16 @@ function createFormatters(locale: Locale) {
     timeRange: range({ hour: "numeric", minute: "2-digit" }),
     /** "a, b and c" with the locale's separators. */
     list: (items: string[]) => listFmt.format(items),
+    /** "now", "5 minutes ago", "yesterday"; past a week, the date. */
+    relative: (value: DateInput, now = Date.now()) => {
+      const seconds = (new Date(value).getTime() - now) / 1000;
+      const abs = Math.abs(seconds);
+      if (abs < 45) return relativeFmt.format(0, "second");
+      if (abs < 3_600) return relativeFmt.format(Math.round(seconds / 60), "minute");
+      if (abs < 86_400) return relativeFmt.format(Math.round(seconds / 3_600), "hour");
+      if (abs < 7 * 86_400) return relativeFmt.format(Math.round(seconds / 86_400), "day");
+      return shortDate.format(new Date(value));
+    },
   };
 }
 

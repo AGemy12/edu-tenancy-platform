@@ -6,6 +6,8 @@ import { useI18n, useT } from "@/i18n/provider";
 import type { MessageKey } from "@/i18n/messages";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { SpaceSwitcher } from "@/components/space-switcher";
+import { SupportBanner } from "@/components/support-banner";
+import { useSupportAccess } from "@/components/settings/support-access";
 import {
   AlertTriangleIcon,
   PauseCircleIcon,
@@ -18,7 +20,9 @@ import {
   GraduationCapIcon,
   LibraryBigIcon,
   LayoutDashboardIcon,
+  LifeBuoyIcon,
   LogOutIcon,
+  MessagesSquareIcon,
   MenuIcon,
   SettingsIcon,
   UserRoundIcon,
@@ -43,11 +47,15 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useCurrentUser, useLogout } from "@/hooks/use-auth";
 import { useTenantMe } from "@/hooks/use-resources";
 import { useAuthStore } from "@/stores/auth-store";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { RealtimeBridge } from "@/components/realtime/realtime-bridge";
+import { canUseMessages, useChatUnread } from "@/hooks/use-messages";
 import type { AuthUser, Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const NAV: { href: string; label: MessageKey; icon: typeof UsersIcon; roles: Role[] }[] = [
   { href: "/dashboard", label: "nav.home", icon: LayoutDashboardIcon, roles: ["TENANT_ADMIN", "TEACHER", "STUDENT"] },
+  { href: "/dashboard/messages", label: "nav.messages", icon: MessagesSquareIcon, roles: ["TENANT_ADMIN", "TEACHER", "STUDENT"] },
   { href: "/dashboard/teachers", label: "nav.teachers", icon: GraduationCapIcon, roles: ["TENANT_ADMIN"] },
   { href: "/dashboard/students", label: "nav.students", icon: UsersIcon, roles: ["TENANT_ADMIN", "TEACHER"] },
   { href: "/dashboard/courses", label: "nav.courses", icon: BookOpenIcon, roles: ["TENANT_ADMIN", "TEACHER", "STUDENT"] },
@@ -75,10 +83,13 @@ function initials(name: string) {
 
 function NavLinks({ user, onNavigate }: { user: AuthUser; onNavigate?: () => void }) {
   const pathname = usePathname();
-  const t = useT();
+  const { t, format } = useI18n();
+  const chat = canUseMessages(user);
+  const unreadMessages = useChatUnread(chat).data?.messages ?? 0;
   return (
     <nav className="flex flex-col gap-1 p-3" aria-label={t("nav.mainMenu")}>
-      {NAV.filter((n) => n.roles.includes(user.role)).map((n) => {
+      {/* Messages are a member's own: hidden in support mode. */}
+      {NAV.filter((n) => n.roles.includes(user.role) && (n.href !== "/dashboard/messages" || chat)).map((n) => {
         // The two home entries sit above their sections, so they match exactly.
         const active = n.href === "/dashboard" || n.href === "/dashboard/platform" ? pathname === n.href : pathname.startsWith(n.href);
         return (
@@ -87,14 +98,20 @@ function NavLinks({ user, onNavigate }: { user: AuthUser; onNavigate?: () => voi
             href={n.href}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               active
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+                : "text-sidebar-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             <n.icon className="size-4.5" aria-hidden="true" />
-            {t(n.label)}
+            <span className="flex-1">{t(n.label)}</span>
+            {n.href === "/dashboard/messages" && unreadMessages > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[0.7rem] font-bold text-primary-foreground" aria-label={t("chat.unreadCount", { count: unreadMessages })}>
+                {format.number(Math.min(unreadMessages, 99))}
+                {unreadMessages > 99 && "+"}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -159,6 +176,28 @@ function SuspendedBanner({ user }: { user: AuthUser }) {
   );
 }
 
+/** A center admin learns on every page that platform support is waiting for their answer. */
+function SupportRequestBanner({ user }: { user: AuthUser }) {
+  const t = useT();
+  const pathname = usePathname();
+  const access = useSupportAccess(user.role === "TENANT_ADMIN" && !user.support);
+  const pending = access.data?.filter((r) => r.state === "PENDING").length ?? 0;
+  // The settings page shows the requests themselves.
+  if (!pending || pathname.startsWith("/dashboard/settings")) return null;
+  return (
+    <Alert className="mb-6 border-warning/50 bg-warning/10">
+      <LifeBuoyIcon className="text-warning-foreground dark:text-warning" />
+      <AlertTitle>{t("support.access.bannerTitle", { count: pending })}</AlertTitle>
+      <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+        <span>{t("support.access.bannerText")}</span>
+        <Button asChild size="sm" variant="outline">
+          <Link href="/dashboard/settings#support">{t("support.access.review")}</Link>
+        </Button>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 function ExpiredBanner({ user }: { user: AuthUser }) {
   const t = useT();
   const tenant = useTenantMe(user.role !== "SUPER_ADMIN" && Boolean(user.tenantId));
@@ -197,7 +236,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Skeleton className="h-9 w-40" />
           <div className="mt-8 space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full rounded-full" />
+              <Skeleton key={i} className="h-10 w-full rounded-lg" />
             ))}
           </div>
         </aside>
@@ -230,7 +269,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const userMenu = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-auto gap-3 rounded-full px-2 py-1.5">
+        <Button variant="ghost" className="h-auto gap-3 px-2 py-1.5">
           <Avatar className="size-8">
             <AvatarFallback className="bg-accent text-accent-foreground text-xs font-bold">
               {initials(user.fullName)}
@@ -263,7 +302,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </DropdownMenuItem>
         )}
         <DropdownMenuItem variant="destructive" onClick={logout}>
-          <LogOutIcon /> {t("common.session.signOut")}
+          <LogOutIcon /> {user.support ? t("support.exit") : t("common.session.signOut")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -280,31 +319,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b bg-background/85 px-4 backdrop-blur md:px-8">
-          <div className="flex items-center gap-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="md:hidden" aria-label={t("nav.openMenu")}>
-                  <MenuIcon />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side={dir === "rtl" ? "right" : "left"} className="w-72 p-0">
-                <SheetTitle className="sr-only">{t("nav.menu")}</SheetTitle>
-                <SpaceSwitcher user={user} />
-                <NavLinks user={user} />
-              </SheetContent>
-            </Sheet>
-            <span className="font-bold md:hidden"><bdi>{user.tenant?.name}</bdi></span>
-          </div>
-          <div className="flex items-center gap-2">
-            <LocaleSwitcher />
-            <ThemeToggle />
-            {userMenu}
-          </div>
-        </header>
+        {/* Support mode keeps its banner in view above the header. */}
+        <div className="sticky top-0 z-20">
+          <SupportBanner user={user} />
+          <header className="flex h-16 items-center justify-between gap-3 border-b bg-background/85 px-4 backdrop-blur md:px-8">
+            <div className="flex items-center gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="md:hidden" aria-label={t("nav.openMenu")}>
+                    <MenuIcon />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side={dir === "rtl" ? "right" : "left"} className="w-72 p-0">
+                  <SheetTitle className="sr-only">{t("nav.menu")}</SheetTitle>
+                  <SpaceSwitcher user={user} />
+                  <NavLinks user={user} />
+                </SheetContent>
+              </Sheet>
+              <span className="font-bold md:hidden"><bdi>{user.tenant?.name}</bdi></span>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <NotificationBell user={user} />
+              <LocaleSwitcher />
+              <ThemeToggle />
+              {userMenu}
+            </div>
+          </header>
+        </div>
         <main className="flex-1 p-4 md:p-8">
+          <RealtimeBridge user={user} />
           <SuspendedBanner user={user} />
           <ExpiredBanner user={user} />
+          <SupportRequestBanner user={user} />
           {children}
         </main>
       </div>

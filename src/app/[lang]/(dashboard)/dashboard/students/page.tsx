@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarClockIcon } from "lucide-react";
+import { BarChart3Icon, CalendarClockIcon } from "lucide-react";
 import { AccountStatusBadge, AccountStatusDialog, accountStatusActions, type StatusChange } from "@/components/account-status";
 import CrudPage from "@/components/crud-page";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +73,7 @@ export default function StudentsPage() {
         { name: "notes", label: t("fields.notes"), type: "textarea" },
       ]}
       rowActions={(r) => [
+        { label: t("students.actions.report"), icon: BarChart3Icon, href: `/dashboard/reports/student?id=${r.id}` },
         {
           label: t("students.actions.schedule"),
           icon: CalendarClockIcon,

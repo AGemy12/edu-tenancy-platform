@@ -11,6 +11,15 @@ const teachers: Shape<typeof ar> = {
     email: "Email",
     courses: "Courses",
     students: "Students",
+    meetingAccounts: "Meeting accounts",
+  },
+  meeting: {
+    accounts: { ZOOM: "Zoom", GOOGLE_MEET: "Google" },
+    linked: "connected",
+    missing: "not connected",
+    remind: "Remind to connect {provider}",
+    reminded: "Reminder sent to the teacher",
+    linkYours: "Connect your account in Settings",
   },
   form: {
     passwordHint: "Optional: leave it empty and the teacher gets an email to choose one",
@@ -22,6 +31,9 @@ const teachers: Shape<typeof ar> = {
     added: "You're now a teacher in your center. Pick yourself when creating courses and sessions.",
     badge: "You",
     removeText: "You'll stop teaching and leave the teachers list. Your center admin account stays as it is.",
+  },
+  actions: {
+    report: "Teacher report",
   },
 };
 

@@ -22,6 +22,13 @@ const sessions: Shape<typeof ar> = {
     meetingUrl: "Meeting link",
     meetingUrlHint: "Manual links only. Zoom and Meet links are created automatically",
     notes: "Post-session notes",
+    meetingAccount: {
+      selfMissing: "You haven't connected your {provider} account yet, and the session is created on it. Connect it in Settings first, or choose a pasted link.",
+      linkNow: "Connect account",
+      teacherMissing:
+        "{name} hasn't connected a {provider} account yet. The session is created on the teacher's account, so it can't be booked until they do. Choose a pasted link, or remind them.",
+      disabled: "{provider} isn't enabled on the platform yet. Choose another platform or a pasted link.",
+    },
   },
   provider: {
     ZOOM: "Zoom",
@@ -53,6 +60,7 @@ const sessions: Shape<typeof ar> = {
       PRESENT: "Present",
       LATE: "Late",
       ABSENT: "Absent",
+      EXCUSED: "Excused",
     },
     statusLabel: "Attendance",
     rating: "Rating",

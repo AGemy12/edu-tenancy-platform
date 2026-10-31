@@ -1,4 +1,5 @@
 import { BookOpenIcon, CalendarCheckIcon, GraduationCapIcon, VideoIcon } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -19,7 +20,7 @@ export default async function Home() {
     <main className="flex flex-1 flex-col">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
         <div className="flex items-center gap-2.5">
-          <span className="size-9 rounded-xl bg-primary" aria-hidden="true" />
+          <BrandMark />
           <span className="text-lg font-bold">{t("common.appName")}</span>
         </div>
         <div className="flex items-center gap-2">
