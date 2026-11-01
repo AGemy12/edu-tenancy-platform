@@ -111,6 +111,18 @@ const sessions: Shape<typeof ar> = {
     ended: "Session ended",
     openFailed: "Couldn't open the meeting",
   },
+  ringing: {
+    started: "{title} has started",
+    calling: "is calling you…",
+    answer: "Answer",
+    later: "Later",
+    hint: "Tap the green button to join your class",
+    alertTitle: "{name} is calling you",
+    alertBody: "{title} has started. Tap Answer to join.",
+    bannerTitle: "Your class has started!",
+    bannerText: "{name} is waiting for you in {title}",
+    enter: "Join now",
+  },
 };
 
 export default sessions;

@@ -49,6 +49,7 @@ import { useTenantMe } from "@/hooks/use-resources";
 import { useAuthStore } from "@/stores/auth-store";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { RealtimeBridge } from "@/components/realtime/realtime-bridge";
+import { IncomingSession } from "@/components/sessions/incoming-session";
 import { canUseMessages, useChatUnread } from "@/hooks/use-messages";
 import type { AuthUser, Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -348,6 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <main className="flex-1 p-4 md:p-8">
           <RealtimeBridge user={user} />
+          <IncomingSession user={user} />
           <SuspendedBanner user={user} />
           <ExpiredBanner user={user} />
           <SupportRequestBanner user={user} />

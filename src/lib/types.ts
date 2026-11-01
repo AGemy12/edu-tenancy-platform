@@ -125,6 +125,15 @@ export type LiveSession = {
   _count?: { attendees: number };
 };
 
+/** The live session calling a student (GET /sessions/ringing): it rings for `ringMs`, then shows as a banner. */
+export type RingingSession = {
+  id: string;
+  title: string;
+  teacherName: string;
+  startedAt: string;
+  ringMs: number;
+};
+
 export type ScheduleSlot = { weekday: number; startTime: string };
 
 /** A student's monthly hours with a teacher; its sessions are generated from the weekly slots. */

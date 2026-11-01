@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "@/i18n/navigation";
 import { useI18n } from "@/i18n/provider";
 import { api, getErrorMessage } from "@/lib/api";
 import { RING_MS, callKeys, endCall, joinCall } from "@/hooks/use-calls";
+import { ringingKey } from "@/hooks/use-ringing";
 import { chime, desktopAlert } from "@/lib/alerts";
 import { connectRealtime, disconnectRealtime } from "@/lib/realtime";
 import { authKeys } from "@/hooks/use-auth";
@@ -28,6 +29,7 @@ type Payloads = {
   "conversation:removed": { conversationId: string };
   typing: { conversationId: string; membershipId: string };
   presence: { membershipId: string; online: boolean; lastSeenAt?: string };
+  "session:ring": { sessionId: string };
 };
 
 /** A dropped connection is reported only if it lasts (a token refresh reconnects in a blink). */
@@ -69,6 +71,7 @@ export function RealtimeBridge({ user }: { user: AuthUser }) {
       if (everConnected) {
         qc.invalidateQueries({ queryKey: notificationKeys.all });
         qc.invalidateQueries({ queryKey: chatKeys.all });
+        qc.invalidateQueries({ queryKey: ringingKey });
       }
       everConnected = true;
     });
@@ -108,6 +111,14 @@ export function RealtimeBridge({ user }: { user: AuthUser }) {
       if (change.read) patchNotifications(qc, (n) => (change.read!.includes(n.id) && !n.readAt ? { ...n, readAt: now } : n));
       if (change.allRead) patchNotifications(qc, (n) => (!n.readAt && (!change.category || n.category === change.category) ? { ...n, readAt: now } : n));
       if (change.removed) patchNotifications(qc, (n) => (change.removed!.includes(n.id) ? null : n));
+    });
+
+    /* ── Sessions ── */
+
+    // A session started, ended, or was entered elsewhere: IncomingSession rings or stops.
+    on("session:ring", () => {
+      qc.invalidateQueries({ queryKey: ringingKey });
+      qc.invalidateQueries({ queryKey: ["list"] });
     });
 
     /* ── Messages ── */

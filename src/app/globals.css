@@ -57,6 +57,13 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-call: var(--call);
+  --color-call-foreground: var(--call-foreground);
+  --color-call-muted: var(--call-muted);
+  --color-call-chip: var(--call-chip);
+  --color-call-live: var(--call-live);
+  --color-call-answer: var(--call-answer);
+  --color-call-decline: var(--call-decline);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -100,6 +107,15 @@
   --warning-foreground: #78350f;
   --info: #0369a1;
   --info-foreground: #ffffff;
+
+  /* The incoming-call screen (a session starting): dark in both themes, like a phone's. */
+  --call: #1e1b4b;
+  --call-foreground: #ffffff;
+  --call-muted: #c7d2fe;
+  --call-chip: #312e81;
+  --call-live: #4ade80;
+  --call-answer: #15803d;
+  --call-decline: #dc2626;
 
   --chart-1: #4338ca;
   --chart-2: #f59e0b;
@@ -156,6 +172,14 @@
   --info: #38bdf8;
   --info-foreground: #082f49;
 
+  --call: #17153d;
+  --call-foreground: #ffffff;
+  --call-muted: #c7d2fe;
+  --call-chip: #2e2a78;
+  --call-live: #4ade80;
+  --call-answer: #15803d;
+  --call-decline: #dc2626;
+
   --chart-1: #818cf8;
   --chart-2: #fbbf24;
   --chart-3: #38bdf8;
@@ -210,6 +234,18 @@
   .dark input[type="month"],
   .dark input[type="time"] {
     color-scheme: dark;
+  }
+}
+
+/* Rings spreading out from the caller's picture on the incoming-call screen. */
+@keyframes call-halo {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
   }
 }
 

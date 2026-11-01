@@ -124,6 +124,19 @@ const sessions = {
     ended: "تم إنهاء الجلسة",
     openFailed: "تعذر فتح الاجتماع",
   },
+  /** The "incoming call" a student gets when their session starts: short words a child can follow. */
+  ringing: {
+    started: "بدأت الآن: {title}",
+    calling: "يتصل بك الآن…",
+    answer: "رد",
+    later: "لاحقاً",
+    hint: "اضغط الزر الأخضر لتدخل الحصة",
+    alertTitle: "{name} يتصل بك",
+    alertBody: "بدأت الآن: {title}. اضغط «رد» لتدخل.",
+    bannerTitle: "حصتك بدأت!",
+    bannerText: "{name} ينتظرك الآن في {title}",
+    enter: "ادخل الآن",
+  },
 };
 
 export default sessions;

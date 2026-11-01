@@ -40,16 +40,32 @@ export async function setDesktopAlerts(on: boolean): Promise<DesktopState> {
   return desktopState();
 }
 
-/** Shows a desktop alert while the tab is hidden; a click brings the tab back and runs `onClick`. */
-export function desktopAlert(title: string, body: string, opts: { tag?: string; onClick?: () => void } = {}) {
+/**
+ * Shows a desktop alert while the tab is hidden; a click brings the tab back and runs `onClick`.
+ * `requireInteraction` keeps it on screen until it is clicked or closed (an incoming call); the
+ * returned alert lets the caller close it sooner.
+ */
+export function desktopAlert(
+  title: string,
+  body: string,
+  opts: { tag?: string; onClick?: () => void; requireInteraction?: boolean } = {},
+): Notification | undefined {
   if (desktopState() !== "on" || document.visibilityState === "visible") return;
   try {
-    const n = new Notification(title, { body: body.slice(0, 180), tag: opts.tag, icon: "/favicon.ico", lang: document.documentElement.lang, dir: "auto" });
+    const n = new Notification(title, {
+      body: body.slice(0, 180),
+      tag: opts.tag,
+      icon: "/favicon.ico",
+      lang: document.documentElement.lang,
+      dir: "auto",
+      requireInteraction: opts.requireInteraction,
+    });
     n.onclick = () => {
       window.focus();
       opts.onClick?.();
       n.close();
     };
+    return n;
   } catch {}
 }
 
@@ -63,6 +79,52 @@ export function setSound(on: boolean) {
 
 let audio: AudioContext | null = null;
 let lastChime = 0;
+
+/** How often an incoming call rings: a one-second trill, then two seconds of quiet. */
+const RING_EVERY_MS = 3_000;
+
+/**
+ * A phone ringing until the returned function stops it: a trill (when sound is on) and a buzz on
+ * phones. Browsers stay silent until the page has been touched once; the buzz and the screen
+ * itself still tell the person.
+ */
+export function ringtone(): () => void {
+  const ring = () => {
+    if (soundOn()) trill();
+    try {
+      navigator.vibrate?.([400, 200, 400]);
+    } catch {}
+  };
+  ring();
+  const timer = setInterval(ring, RING_EVERY_MS);
+  return () => {
+    clearInterval(timer);
+    try {
+      navigator.vibrate?.(0);
+    } catch {}
+  };
+}
+
+function trill() {
+  try {
+    audio ??= new AudioContext();
+    void audio.resume().catch(() => undefined);
+    const start = audio.currentTime;
+    for (let i = 0; i < 12; i++) {
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.type = "sine";
+      osc.frequency.value = i % 2 ? 660 : 880;
+      const at = start + i * 0.08;
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.07, at + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.075);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(at);
+      osc.stop(at + 0.08);
+    }
+  } catch {}
+}
 
 /** Two soft notes; at most one chime every two seconds however many events arrive. */
 export function chime() {
