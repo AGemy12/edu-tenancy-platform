@@ -1,5 +1,6 @@
 import { BookOpenIcon, CalendarCheckIcon, GraduationCapIcon, VideoIcon } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
+import { SiteFooter } from "@/components/legal/site-footer";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -62,6 +63,7 @@ export default async function Home() {
           ))}
         </div>
       </section>
+      <SiteFooter />
     </main>
   );
 }

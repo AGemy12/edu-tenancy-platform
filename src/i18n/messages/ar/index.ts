@@ -22,7 +22,8 @@ import spaces from "./spaces";
 import support from "./support";
 import notifications from "./notifications";
 import chat from "./chat";
+import legal from "./legal";
 
-export const ar = { common, nav, validation, fields, auth, landing, dashboard, teachers, students, courses, sessions, schedules, exams, reports, settings, library, billing, profile, platform, errors, spaces, support, notifications, chat };
+export const ar = { common, nav, validation, fields, auth, landing, dashboard, teachers, students, courses, sessions, schedules, exams, reports, settings, library, billing, profile, platform, errors, spaces, support, notifications, chat, legal };
 
 export type Messages = typeof ar;
