@@ -25,6 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: t("common.appName"), template: `%s · ${t("common.appName")}` },
     description: t("common.appTagline"),
+    // Zoom Marketplace domain verification for this host.
+    verification: { other: { "zoom-domain-verification": "ZOOM_verify_50fabe17fc6444cf8962760a25cbbeca" } },
   };
 }
 
