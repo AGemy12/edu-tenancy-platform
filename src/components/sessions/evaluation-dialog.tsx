@@ -47,7 +47,7 @@ export default function EvaluationDialog({
   const { t, format } = useI18n();
   return (
     <Dialog open={Boolean(session)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {mode === "mine" ? t("sessions.evaluation.mineTitle") : t("sessions.evaluation.title")} · <bdi>{session?.title}</bdi>

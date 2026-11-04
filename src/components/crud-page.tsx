@@ -238,6 +238,62 @@ export default function CrudPage<T extends Row>({
   const saving = create.isPending || update.isPending;
   const rows = filter ? (list.data ?? []).filter(filter) : (list.data ?? []);
 
+  const cellValue = (c: Column<T>, row: T) => (c.render ? c.render(row) : <bdi>{String(get(row, c.key) ?? "—")}</bdi>);
+
+  const emptyState = (
+    <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
+      <span className="flex size-14 items-center justify-center rounded-full bg-accent text-accent-foreground">
+        <PlusIcon className="size-6" aria-hidden="true" />
+      </span>
+      <p className="font-semibold">{emptyTitle}</p>
+      {emptyText && <p className="text-sm text-muted-foreground">{emptyText}</p>}
+      {(canCreate || extraActions) && (
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
+          {extraActions}
+          {canCreate && (
+            <Button size="sm" onClick={openCreate}>
+              {createLabel}
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  /** A row as a card on phones: the first column heads it, the rest follow as label/value pairs. */
+  function renderCard(row: T) {
+    // Columns kept out of the table altogether (className "hidden") stay for the details dialog only;
+    // ones hidden just on narrow tables ("hidden lg:table-cell") have room on a card.
+    const [head, ...rest] = columns.filter((c) => !/(^|\s)hidden(\s|$)/.test(c.className ?? "") || /:table-cell/.test(c.className ?? ""));
+    const labelled = rest.filter((c) => c.label);
+    const unlabelled = rest.filter((c) => !c.label);
+    return (
+      <article key={row.id} className="rounded-2xl border bg-card p-4 shadow-soft">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 break-words font-semibold">{head && cellValue(head, row)}</div>
+          {hasActions && <RowActions actions={actionsFor(row)} label={rowLabel?.(row)} />}
+        </div>
+        {labelled.length > 0 && (
+          <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2.5 border-t pt-3 text-sm min-[340px]:grid-cols-2">
+            {labelled.map((c) => (
+              <div key={c.key} className="min-w-0">
+                <dt className="text-xs text-muted-foreground">{c.label}</dt>
+                <dd className="mt-0.5 break-words font-medium">{cellValue(c, row)}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {unlabelled.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+            {unlabelled.map((c) => (
+              <div key={c.key}>{cellValue(c, row)}</div>
+            ))}
+          </div>
+        )}
+      </article>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -266,7 +322,20 @@ export default function CrudPage<T extends Row>({
       {renderView ? (
         renderView({ rows, loading: list.isPending, actionsFor })
       ) : (
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-soft">
+      <>
+      {/* Phones: one card per row, every column as a label/value line. */}
+      <div className="space-y-3 md:hidden">
+        {list.isPending ? (
+          Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)
+        ) : rows.length === 0 ? (
+          <div className="rounded-2xl border bg-card px-4 py-10 text-center shadow-soft">
+            {emptyState}
+          </div>
+        ) : (
+          rows.map(renderCard)
+        )}
+      </div>
+      <div className="hidden overflow-hidden rounded-2xl border bg-card shadow-soft md:block">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -293,24 +362,8 @@ export default function CrudPage<T extends Row>({
                 ))
               ) : rows.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={columns.length + (hasActions ? 1 : 0)} className="py-14 text-center">
-                    <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
-                      <span className="flex size-14 items-center justify-center rounded-full bg-accent text-accent-foreground">
-                        <PlusIcon className="size-6" aria-hidden="true" />
-                      </span>
-                      <p className="font-semibold">{emptyTitle}</p>
-                      {emptyText && <p className="text-sm text-muted-foreground">{emptyText}</p>}
-                      {(canCreate || extraActions) && (
-                        <div className="mt-2 flex flex-wrap justify-center gap-2">
-                          {extraActions}
-                          {canCreate && (
-                            <Button size="sm" onClick={openCreate}>
-                              {createLabel}
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                  <TableCell colSpan={columns.length + (hasActions ? 1 : 0)} className="py-14 text-center whitespace-normal">
+                    {emptyState}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -333,6 +386,7 @@ export default function CrudPage<T extends Row>({
           </Table>
         </div>
       </div>
+      </>
       )}
 
       {/* Create / edit dialog */}

@@ -19,7 +19,7 @@ export default function EnrollmentsDialog({ course, onClose }: { course: Course 
   const { t } = useI18n();
   return (
     <Dialog open={Boolean(course)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("courses.enrollments.title")}</DialogTitle>
           <DialogDescription>

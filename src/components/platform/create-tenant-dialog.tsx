@@ -27,7 +27,7 @@ export default function CreateTenantDialog({ open, onClose, onCreated }: { open:
   const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("platform.create.title")}</DialogTitle>
           <DialogDescription>{t("platform.create.description")}</DialogDescription>

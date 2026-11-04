@@ -18,7 +18,7 @@ export default function GradingDialog({ exam, onClose }: { exam: Exam | null; on
   const { t } = useI18n();
   return (
     <Dialog open={Boolean(exam)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {t("exams.grading.title")} · <bdi>{exam?.title}</bdi>

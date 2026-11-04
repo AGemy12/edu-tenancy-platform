@@ -19,18 +19,20 @@ export default async function Home() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
-        <div className="flex items-center gap-2.5">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <BrandMark />
-          <span className="text-lg font-bold">{t("common.appName")}</span>
+          {/* Phones keep just the mark: the name would push the actions off the screen. */}
+          <span className="hidden truncate text-lg font-bold sm:inline">{t("common.appName")}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <LocaleSwitcher />
           <ThemeToggle />
           <Button asChild variant="ghost">
             <Link href="/login">{t("landing.header.signIn")}</Link>
           </Button>
-          <Button asChild>
+          {/* The hero right below offers the same button on phones. */}
+          <Button asChild className="hidden sm:inline-flex">
             <Link href="/register">{t("landing.header.startFree")}</Link>
           </Button>
         </div>
@@ -40,7 +42,7 @@ export default async function Home() {
         <span className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-foreground">
           {t("landing.hero.badge")}
         </span>
-        <h1 className="max-w-3xl text-4xl font-bold leading-tight md:text-5xl">{t("landing.hero.title")}</h1>
+        <h1 className="max-w-3xl text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">{t("landing.hero.title")}</h1>
         <p className="max-w-2xl text-lg text-muted-foreground">{t("landing.hero.text")}</p>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">

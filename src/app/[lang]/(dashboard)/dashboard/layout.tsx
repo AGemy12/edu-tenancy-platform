@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { useI18n, useT } from "@/i18n/provider";
 import type { MessageKey } from "@/i18n/messages";
@@ -220,6 +220,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const clearSession = useAuthStore((s) => s.clear);
   const { t, dir } = useI18n();
   const sessionEnded = !isLoading && !user;
+  // The phone menu closes once a link takes the user to another page.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPath, setMenuPath] = useState(pathname);
+  if (menuPath !== pathname) {
+    setMenuPath(pathname);
+    setMenuOpen(false);
+  }
 
   // No tokens left (expired refresh, or a new tab without "remember me") but the
   // session cookie may still be set — and the proxy bounces /login back here while
@@ -324,22 +331,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="sticky top-0 z-20">
           <SupportBanner user={user} />
           <header className="flex h-16 items-center justify-between gap-3 border-b bg-background/85 px-4 backdrop-blur md:px-8">
-            <div className="flex items-center gap-2">
-              <Sheet>
+            <div className="flex min-w-0 items-center gap-2">
+              <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" className="md:hidden" aria-label={t("nav.openMenu")}>
+                  <Button variant="outline" size="icon" className="shrink-0 md:hidden" aria-label={t("nav.openMenu")}>
                     <MenuIcon />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side={dir === "rtl" ? "right" : "left"} className="w-72 p-0">
+                <SheetContent side={dir === "rtl" ? "right" : "left"} className="w-72 max-w-[85vw] gap-0 overflow-y-auto p-0">
                   <SheetTitle className="sr-only">{t("nav.menu")}</SheetTitle>
                   <SpaceSwitcher user={user} />
-                  <NavLinks user={user} />
+                  <NavLinks user={user} onNavigate={() => setMenuOpen(false)} />
+                  <div className="mt-auto">
+                    <PlanBadge user={user} />
+                  </div>
                 </SheetContent>
               </Sheet>
-              <span className="font-bold md:hidden"><bdi>{user.tenant?.name}</bdi></span>
+              <span className="truncate font-bold md:hidden"><bdi>{user.tenant?.name}</bdi></span>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <NotificationBell user={user} />
               <LocaleSwitcher />
               <ThemeToggle />

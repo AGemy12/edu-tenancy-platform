@@ -20,7 +20,7 @@ export default function PlanDialog({ open, plan, onClose }: { open: boolean; pla
   const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{plan ? t("platform.plans.dialog.editTitle", { name: plan.nameAr }) : t("platform.plans.dialog.createTitle")}</DialogTitle>
           <DialogDescription>{t("platform.plans.dialog.description")}</DialogDescription>

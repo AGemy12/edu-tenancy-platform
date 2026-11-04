@@ -103,7 +103,7 @@ export default function ScheduleDialog({
   const { t } = useI18n();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{t("schedules.create")}</DialogTitle>
           <DialogDescription>{t("schedules.form.description")}</DialogDescription>

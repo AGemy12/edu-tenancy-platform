@@ -24,7 +24,7 @@ export function PlansDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>{t("library.plans.title")}</DialogTitle>
           <DialogDescription>{t("library.plans.description")}</DialogDescription>
