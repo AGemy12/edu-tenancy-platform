@@ -67,9 +67,7 @@ function useFormatters(currency: string) {
     return t("billing.duration.hm", { h: format.number(h), m: format.number(m) });
   };
   const rate = (amount: number, basis: RateBasis) =>
-    basis === "PERCENT"
-      ? t("billing.percent", { percent: format.number(amount) })
-      : t(basis === "PER_SESSION" ? "billing.perSession" : "billing.perHour", { amount: money(amount) });
+    basis === "PERCENT" ? t("billing.percent", { percent: format.number(amount) }) : t("billing.perSession", { amount: money(amount) });
   return { money, duration, rate };
 }
 
@@ -98,18 +96,11 @@ export function BillingView() {
           <p className="text-muted-foreground">{t(`billing.description.${viewer}`)}</p>
         </div>
         {viewer !== "student" && (
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <Link href="/dashboard/billing/rates">
-                <TagsIcon data-icon="inline-start" /> {viewer === "admin" ? t("billing.managePrices") : t("billing.myPrices")}
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/dashboard/billing/pay">
-                <HandCoinsIcon data-icon="inline-start" /> {viewer === "admin" ? t("billing.managePay") : t("billing.myPay")}
-              </Link>
-            </Button>
-          </div>
+          <Button asChild variant="outline">
+            <Link href="/dashboard/billing/rates">
+              <TagsIcon data-icon="inline-start" /> {viewer === "admin" ? t("billing.managePrices") : t("billing.myPrices")}
+            </Link>
+          </Button>
         )}
       </div>
 
@@ -323,6 +314,12 @@ function Notices({
           </AlertDescription>
         </Alert>
       )}
+      {totals.freeSeats > 0 && (
+        <p className="flex items-start gap-2 text-sm text-muted-foreground">
+          <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          {t("billing.alerts.freeSeats", { count: totals.freeSeats })}
+        </p>
+      )}
       {totals.unconfirmed > 0 && filters.entry !== "unconfirmed" && (
         <Alert>
           <InfoIcon />
@@ -439,7 +436,7 @@ function SessionsTable({
               </TableRow>
             ) : (
               rows.map((r) => {
-                const missing = r.billable && r.students.some((s) => s.rate === null);
+                const missing = r.billable && r.students.some((s) => s.charged && s.rate === null);
                 return (
                   <TableRow key={r.id} className={cn(!r.billable && "text-muted-foreground")}>
                     <TableCell className="hidden whitespace-nowrap tabular-nums sm:table-cell">{format.dateTime(r.startAt)}</TableCell>
@@ -745,7 +742,10 @@ function DetailsDialog({
                         <bdi>{s.name}</bdi>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={s.attended ? "success" : "secondary"}>{s.attended ? t("billing.attended") : t("billing.absent")}</Badge>
+                        <Badge variant={s.status === "ABSENT" || s.status === "EXCUSED" ? "secondary" : s.attended || s.status ? "success" : "outline"}>
+                          {t(s.status ? `billing.evaluation.${s.status}` : s.attended ? "billing.attended" : "billing.notEvaluated")}
+                        </Badge>
+                        {s.free && <div className="mt-1 text-xs text-muted-foreground">{t(`billing.free.${s.free}`)}</div>}
                         {s.joinedAt && (
                           <div className="mt-1 text-xs text-muted-foreground tabular-nums">
                             {t("billing.details.joinedAt", { time: format.time(s.joinedAt) })}
@@ -756,11 +756,11 @@ function DetailsDialog({
                         {s.rate !== null && s.rateSource ? (
                           <>
                             <div className="tabular-nums">
-                              <bdi>{rate(s.rate, s.rateBasis ?? "PER_HOUR")}</bdi>
+                              <bdi>{rate(s.rate, "PER_SESSION")}</bdi>
                             </div>
                             <div className="text-xs text-muted-foreground">{sourceLabel(s.rateSource)}</div>
                           </>
-                        ) : row.billable ? (
+                        ) : row.billable && s.charged ? (
                           <Badge variant="warning">{t("billing.noRate")}</Badge>
                         ) : (
                           "—"

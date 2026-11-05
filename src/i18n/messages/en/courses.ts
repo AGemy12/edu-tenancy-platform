@@ -7,13 +7,15 @@ const courses: Shape<typeof ar> = {
   create: "Add course",
   emptyTitle: "No courses yet",
   emptyText: "Create a course, assign it to a teacher, then enroll students.",
-  priceValue: "EGP {amount}",
   columns: {
     enrolled: "Enrolled",
+    sessionPrice: "Session price",
   },
+  priceDefault: "Default price",
   form: {
     level: "Level / grade",
-    price: "Price (EGP)",
+    sessionPrice: "Session price ({currency})",
+    sessionPriceHint: "What a student pays for each session, whatever its length. Leave it empty to use the center's default price.",
   },
   enrollments: {
     title: "Course students",

@@ -39,6 +39,7 @@ function toForm(p: AdminPlan | null): PlanInput {
     descriptionAr: p?.descriptionAr ?? "",
     descriptionEn: p?.descriptionEn ?? "",
     priceMonthly: p?.priceMonthly ?? "",
+    platformFeePercent: p?.platformFeePercent == null ? "" : String(p.platformFeePercent),
     currency: p?.currency ?? "EGP",
     maxTeachers: String(p?.maxTeachers ?? 5),
     maxStudents: String(p?.maxStudents ?? 100),
@@ -80,6 +81,7 @@ function PlanForm({ plan, onDone }: { plan: AdminPlan | null; onDone: () => void
         <TextareaField control={form.control} name="descriptionEn" label={t("fields.descriptionEn")} rows={2} dir="ltr" />
         <TextField control={form.control} name="priceMonthly" label={t("fields.priceMonthly")} type="number" dir="ltr" hint={t("platform.plans.dialog.priceHint")} />
         <TextField control={form.control} name="currency" label={t("fields.currency")} dir="ltr" placeholder="EGP" maxLength={3} />
+        <TextField control={form.control} name="platformFeePercent" label={t("fields.platformFeePercent")} type="number" dir="ltr" hint={t("platform.plans.dialog.feeHint")} />
       </div>
 
       <fieldset className="space-y-3 rounded-xl border p-4">

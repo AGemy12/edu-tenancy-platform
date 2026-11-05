@@ -181,9 +181,12 @@ export function PlatformEarnings({ onOpen }: { onOpen: (id: string) => void }) {
                       {r.platformFeePercent === null ? (
                         <Badge variant="secondary">{t("platform.noFee")}</Badge>
                       ) : (
-                        <Badge variant="outline" dir="ltr">
-                          {t("platform.feePercent", { percent: format.number(r.platformFeePercent) })}
-                        </Badge>
+                        <div className="space-y-0.5">
+                          <Badge variant="outline" dir="ltr">
+                            {t("platform.feePercent", { percent: format.number(r.platformFeePercent) })}
+                          </Badge>
+                          {r.platformFeeFromPlan && <p className="text-xs text-muted-foreground">{t("platform.feeFromPlan")}</p>}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell className="hidden tabular-nums sm:table-cell">{format.number(r.sessions)}</TableCell>

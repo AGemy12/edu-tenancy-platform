@@ -8,6 +8,7 @@ import { accountKey, useMeetingReminder, type HostedProvider } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-auth";
+import { useBillingOptions } from "@/hooks/use-billing";
 import { useCreate, useIntegrations, useList } from "@/hooks/use-resources";
 import { useI18n } from "@/i18n/provider";
 import type { Teacher } from "@/lib/types";
@@ -16,7 +17,8 @@ import { teacherSchema, teacherUpdateSchema } from "@/lib/schemas";
 const HOSTED: HostedProvider[] = ["ZOOM", "GOOGLE_MEET"];
 
 export default function TeachersPage() {
-  const { t, locale } = useI18n();
+  const { t, locale, format } = useI18n();
+  const currency = useBillingOptions().data?.currency ?? "EGP";
   const { user } = useCurrentUser();
   // Same query key as the table, so this reads the cached list.
   const list = useList<Teacher>("/teachers");
@@ -76,6 +78,22 @@ export default function TeachersPage() {
           ),
         },
         { key: "_count.courses", label: t("teachers.columns.courses") },
+        {
+          key: "pay",
+          label: t("teachers.columns.pay"),
+          render: (r) =>
+            r.pay ? (
+              <span className="font-semibold tabular-nums">
+                <bdi>
+                  {r.pay.basis === "PERCENT"
+                    ? t("billing.prices.teachers.percent", { percent: format.number(r.pay.amount) })
+                    : t("billing.prices.teachers.fixed", { amount: format.money(r.pay.amount, currency) })}
+                </bdi>
+              </span>
+            ) : (
+              <span className="text-muted-foreground">{t("billing.prices.teachers.none")}</span>
+            ),
+        },
         { key: "_count.students", label: t("teachers.columns.students") },
         {
           key: "user.status",
@@ -114,13 +132,26 @@ export default function TeachersPage() {
         bio: r.bio ?? "",
         // The schema splits on both Latin and Arabic (U+060C) commas; join with the one the user types.
         subjects: r.subjects.join(locale === "ar" ? "، " : ", "),
+        payBasis: r.pay?.basis ?? "PER_SESSION",
+        payAmount: r.pay ? String(r.pay.amount) : "",
       })}
+      defaults={{ payBasis: "PER_SESSION" }}
       fields={[
         { name: "fullName", label: t("fields.fullName") },
         { name: "email", label: t("fields.email"), type: "email", dir: "ltr", createOnly: true },
         { name: "password", label: t("fields.password"), type: "password", dir: "ltr", hint: t("teachers.form.passwordHint"), createOnly: true },
         { name: "phone", label: t("fields.phone"), dir: "ltr" },
         { name: "subjects", label: t("teachers.form.subjects"), placeholder: t("teachers.form.subjectsPlaceholder") },
+        {
+          name: "payBasis",
+          label: t("fields.payBasis"),
+          type: "select",
+          options: [
+            { value: "PER_SESSION", label: t("billing.prices.dialog.fixed") },
+            { value: "PERCENT", label: t("billing.prices.dialog.share") },
+          ],
+        },
+        { name: "payAmount", label: t("fields.sessionPay"), type: "number", dir: "ltr", hint: t("teachers.form.payHint", { currency }) },
         { name: "bio", label: t("fields.bio"), type: "textarea" },
       ]}
       rowActions={(r) => [

@@ -12,6 +12,7 @@ const teachers: Shape<typeof ar> = {
     courses: "Courses",
     students: "Students",
     meetingAccounts: "Meeting accounts",
+    pay: "Pay per session",
   },
   meeting: {
     accounts: { ZOOM: "Zoom", GOOGLE_MEET: "Google" },
@@ -23,6 +24,7 @@ const teachers: Shape<typeof ar> = {
   },
   form: {
     passwordHint: "Optional: leave it empty and the teacher gets an email to choose one",
+    payHint: "In the center's currency ({currency}) for a fixed amount, or 0 to 100 for a share. Leave it empty if not decided yet.",
     subjects: "Subjects (comma-separated)",
     subjectsPlaceholder: "Math, Physics",
   },

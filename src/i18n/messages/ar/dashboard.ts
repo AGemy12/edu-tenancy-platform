@@ -2,14 +2,14 @@ const dashboard = {
   greeting: "مرحباً، {name}",
   overview: "نظرة عامة على {tenant}",
   actions: {
-    scheduleSession: "جدولة جلسة",
+    scheduleSession: "جدولة حصة",
     addStudent: "إضافة طالب",
   },
   stats: {
     students: "الطلاب",
     teachers: "المدرسون",
     courses: "الكورسات",
-    upcomingSessions: "جلسات قادمة",
+    upcomingSessions: "حصص قادمة",
     openExams: "امتحانات منشورة",
   },
 };

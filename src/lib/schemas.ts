@@ -71,6 +71,29 @@ const optionalNumber = (field: Label, min = 0) =>
     .transform((v) => (v ? Number(v) : undefined))
     .refine((v) => v === undefined || (!Number.isNaN(v) && v >= min), vmsg("validation.number", { label: label(field) }));
 
+/**
+ * A money amount (or a percentage) typed in a form: up to 8 digits and 2 decimals. A field the
+ * form doesn't show stays undefined (unchanged); an empty one is `empty` — undefined when
+ * creating (nothing to set), null when editing (remove the value).
+ */
+const amountInput = (field: Label, empty: undefined | null) =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^\d{1,8}(\.\d{1,2})?$/.test(v), vmsg("validation.number", { label: label(field) }))
+    .transform((v) => (v === undefined ? undefined : v === "" ? empty : Number(v)));
+
+const payBasis = z
+  .string()
+  .optional()
+  .transform((v) => (v === "PERCENT" ? ("PERCENT" as const) : v ? ("PER_SESSION" as const) : undefined));
+
+/** A teacher's pay in a form: a fixed amount or a %, which can't pass 100. */
+const payFields = (empty: undefined | null) => ({ payBasis, payAmount: amountInput("fields.sessionPay", empty) });
+const payWithinRange = (v: { payBasis?: string; payAmount?: number | null }) => v.payBasis !== "PERCENT" || v.payAmount == null || v.payAmount <= 100;
+const payWithinRangeError = { message: vmsg("validation.percentMax"), path: ["payAmount"] };
+
 const requiredInt = (field: Label, min: number, max: number) =>
   z
     .string()
@@ -158,22 +181,27 @@ export const changePasswordSchema = z
 
 /* ───────── resources ───────── */
 
-export const teacherSchema = z.object({
-  fullName: requiredText("fields.fullName", 3, 80),
-  email,
-  password: optionalPassword,
-  phone,
-  bio: optionalText(1000),
-  subjects: z
-    .string()
-    .optional()
-    .transform((v) =>
-      (v ?? "")
-        .split(/[,،]/)
-        .map((s) => s.trim())
-        .filter(Boolean),
-    ),
-});
+const subjects = z
+  .string()
+  .optional()
+  .transform((v) =>
+    (v ?? "")
+      .split(/[,،]/)
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+
+export const teacherSchema = z
+  .object({
+    fullName: requiredText("fields.fullName", 3, 80),
+    email,
+    password: optionalPassword,
+    phone,
+    bio: optionalText(1000),
+    subjects,
+    ...payFields(undefined),
+  })
+  .refine(payWithinRange, payWithinRangeError);
 
 export const studentSchema = z.object({
   fullName: requiredText("fields.fullName", 3, 80),
@@ -191,7 +219,7 @@ export const courseSchema = z.object({
   teacherId: requiredId("fields.teacher"),
   subject: optionalText(60),
   level: optionalText(60),
-  price: optionalNumber("fields.price"),
+  sessionPrice: amountInput("fields.sessionPrice", undefined),
   description: optionalText(2000),
 });
 
@@ -230,57 +258,6 @@ export const examSchema = z.object({
   totalMarks: requiredInt("fields.totalMarks", 1, 1000),
   description: optionalText(2000),
 });
-
-/** <input type="date"> value → the start of that day in local time, as ISO. */
-const localDay = (field: Label) =>
-  z
-    .string()
-    .min(1, vmsg("validation.required", { label: label(field) }))
-    .refine((v) => !Number.isNaN(new Date(`${v}T00:00`).getTime()), vmsg("validation.invalid", { label: label(field) }))
-    .transform((v) => new Date(`${v}T00:00`).toISOString());
-
-const rateAmount = z
-  .string()
-  .trim()
-  .min(1, vmsg("validation.required", { label: label("fields.amount") }))
-  .regex(/^\d{1,8}(\.\d{1,2})?$/, vmsg("validation.number", { label: label("fields.amount") }))
-  .transform((v) => Number(v));
-
-const rateBasis = z
-  .string()
-  .optional()
-  .transform((v) => (v === "PERCENT" ? "PERCENT" : v === "PER_SESSION" ? "PER_SESSION" : "PER_HOUR"));
-
-const percentWithinRange = (v: { basis: string; amount: number }) => v.basis !== "PERCENT" || v.amount <= 100;
-
-/**
- * One rate-card line. The page fixes `kind`: a student price (teacher, course and student all
- * optional, the most specific wins) or teacher pay (teacher required, course optional).
- */
-export const rateSchema = z
-  .object({
-    kind: z.enum(["STUDENT_FEE", "TEACHER_PAY"], { message: vmsg("validation.chooseRateKind") }),
-    basis: rateBasis,
-    teacherId: optionalId,
-    courseId: optionalId,
-    studentId: optionalId,
-    amount: rateAmount,
-    effectiveFrom: localDay("fields.effectiveFrom"),
-    note: optionalText(500),
-  })
-  .refine((v) => v.kind !== "TEACHER_PAY" || Boolean(v.teacherId), {
-    message: vmsg("validation.required", { label: label("fields.teacher") }),
-    path: ["teacherId"],
-  })
-  .refine((v) => v.basis !== "PERCENT" || v.kind === "TEACHER_PAY", {
-    message: vmsg("validation.percentOnlyTeacherPay"),
-    path: ["basis"],
-  })
-  .refine(percentWithinRange, { message: vmsg("validation.percentMax"), path: ["amount"] })
-  .refine((v) => v.kind !== "TEACHER_PAY" || !v.studentId, {
-    message: vmsg("validation.teacherPayNoStudent"),
-    path: ["studentId"],
-  });
 
 /* ───────── monthly schedules ───────── */
 
@@ -346,6 +323,8 @@ export const planSchema = z.object({
   descriptionAr: optionalText(300),
   descriptionEn: optionalText(300),
   priceMonthly: optionalNumber("fields.priceMonthly"),
+  /** Empty = no fee on this package (null, so editing can remove it). */
+  platformFeePercent: amountInput("fields.platformFeePercent", null).refine((v) => v == null || v <= 100, vmsg("validation.percentMax")),
   currency: z
     .string()
     .trim()
@@ -370,12 +349,15 @@ const activeFlag = z
   .optional()
   .transform((v) => (v === "" || v === undefined ? undefined : v === "true"));
 
-export const teacherUpdateSchema = z.object({
-  fullName: requiredText("fields.fullName", 3, 80),
-  phone,
-  bio: optionalText(1000),
-  subjects: teacherSchema.shape.subjects,
-});
+export const teacherUpdateSchema = z
+  .object({
+    fullName: requiredText("fields.fullName", 3, 80),
+    phone,
+    bio: optionalText(1000),
+    subjects,
+    ...payFields(null),
+  })
+  .refine(payWithinRange, payWithinRangeError);
 
 export const studentUpdateSchema = z.object({
   fullName: requiredText("fields.fullName", 3, 80),
@@ -389,7 +371,7 @@ export const courseUpdateSchema = z.object({
   title: requiredText("fields.courseTitle", 3, 120),
   subject: optionalText(60),
   level: optionalText(60),
-  price: optionalNumber("fields.price"),
+  sessionPrice: amountInput("fields.sessionPrice", null),
   description: optionalText(2000),
   isActive: activeFlag,
 });
@@ -416,16 +398,6 @@ export const examUpdateSchema = z.object({
   description: optionalText(2000),
 });
 
-/** Who a rate applies to can't change; only its value, start date and note. */
-export const rateUpdateSchema = z
-  .object({
-    basis: rateBasis,
-    amount: rateAmount,
-    effectiveFrom: localDay("fields.effectiveFrom"),
-    note: optionalText(500),
-  })
-  .refine(percentWithinRange, { message: vmsg("validation.percentMax"), path: ["amount"] });
-
 /* ───────── helpers for prefilling forms ───────── */
 
 /** ISO → value for <input type="datetime-local"> in local time. */
@@ -436,7 +408,7 @@ export function toLocalDateTime(iso: string | null | undefined) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** ISO → value for <input type="date"> in local time (pairs with `localDay`). */
+/** ISO → value for <input type="date"> in local time. */
 export function toLocalDateInput(iso: string | null | undefined) {
   return iso ? toLocalDateTime(iso).slice(0, 10) : "";
 }

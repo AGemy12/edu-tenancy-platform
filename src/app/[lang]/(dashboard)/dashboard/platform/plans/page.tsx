@@ -81,6 +81,7 @@ export default function PlatformPlansPage() {
               <TableRow className="hover:bg-transparent">
                 <TableHead>{t("platform.plans.columns.plan")}</TableHead>
                 <TableHead>{t("platform.plans.columns.price")}</TableHead>
+                <TableHead>{t("platform.plans.columns.fee")}</TableHead>
                 <TableHead>{t("platform.plans.columns.teachers")}</TableHead>
                 <TableHead>{t("platform.plans.columns.students")}</TableHead>
                 <TableHead className="hidden md:table-cell">{t("platform.plans.columns.storage")}</TableHead>
@@ -95,7 +96,7 @@ export default function PlatformPlansPage() {
               {plans.isPending ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 10 }).map((_, j) => (
+                    {Array.from({ length: 11 }).map((_, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-16" />
                       </TableCell>
@@ -114,6 +115,15 @@ export default function PlatformPlansPage() {
                       </p>
                     </TableCell>
                     <TableCell className="tabular-nums">{p.priceMonthly && Number(p.priceMonthly) > 0 ? `${format.number(Number(p.priceMonthly))} ${p.currency}` : t("platform.detail.free")}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {p.platformFeePercent ? (
+                        <Badge variant="outline" dir="ltr">
+                          {t("platform.feePercent", { percent: format.number(p.platformFeePercent) })}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{t("platform.noFee")}</span>
+                      )}
+                    </TableCell>
                     <TableCell className="tabular-nums">{format.number(p.maxTeachers)}</TableCell>
                     <TableCell className="tabular-nums">{format.number(p.maxStudents)}</TableCell>
                     <TableCell className="hidden tabular-nums md:table-cell" dir="ltr">
