@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { BanIcon, CalendarDaysIcon, CheckCircle2Icon, ClipboardCheckIcon, EyeIcon, ListIcon, LogInIcon, VideoIcon } from "lucide-react";
 import CrudPage from "@/components/crud-page";
 import SessionCalendar, { Segmented } from "@/components/sessions/session-calendar";
+import StudentAgendaView, { useEnterSession } from "@/components/sessions/student-agenda";
 import EvaluationDialog, { type EvaluationMode } from "@/components/sessions/evaluation-dialog";
 import { MeetingAccountNotice } from "@/components/sessions/meeting-account-notice";
 import type { RowAction } from "@/components/row-actions";
@@ -29,7 +30,8 @@ const STATUS_VARIANT: Record<SessionStatus, "info" | "success" | "secondary" | "
   MISSED: "warning",
 };
 
-type View = "calendar" | "list";
+/** Staff pick calendar (default) or table; students get their agenda (default) or the calendar. */
+type View = "calendar" | "list" | "agenda";
 
 export default function SessionsPage() {
   return (
@@ -43,16 +45,28 @@ function Sessions() {
   const { t, format } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
-  // The calendar is the default; ?view=list keeps the table (and survives reloads and the back button).
-  const view: View = useSearchParams().get("view") === "list" ? "list" : "calendar";
   const [evaluating, setEvaluating] = useState<{ session: LiveSession; mode: EvaluationMode } | null>(null);
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const cancel = useRowAction("/sessions", "cancel", { successMessage: t("sessions.toast.canceled") });
   const complete = useRowAction("/sessions", "complete", { successMessage: t("sessions.toast.ended") });
+  const student = useEnterSession();
   const isStudent = user?.role === "STUDENT";
   // Suspended members read only: the API refuses every write and sends no meeting link.
   const suspended = user?.status === "SUSPENDED";
+  // The default view has no query; the other one is in ?view= (it survives reloads and the back button).
+  const param = useSearchParams().get("view");
+  const view: View = isStudent ? (param === "calendar" ? "calendar" : "agenda") : param === "list" ? "list" : "calendar";
+  const views: { value: View; label: string; icon: typeof ListIcon }[] = isStudent
+    ? [
+        { value: "agenda", label: t("sessions.student.views.agenda"), icon: ListIcon },
+        { value: "calendar", label: t("sessions.calendar.views.calendar"), icon: CalendarDaysIcon },
+      ]
+    : [
+        { value: "calendar", label: t("sessions.calendar.views.calendar"), icon: CalendarDaysIcon },
+        { value: "list", label: t("sessions.calendar.views.list"), icon: ListIcon },
+      ];
+  const showView = (v: View) => router.replace(v === views[0].value ? pathname : `${pathname}?view=${v}`, { scroll: false });
 
   async function enterMeeting(id: string, action: "start" | "join") {
     try {
@@ -123,8 +137,8 @@ function Sessions() {
   return (
     <>
       <CrudPage<LiveSession>
-        title={t("sessions.title")}
-        description={t("sessions.description")}
+        title={isStudent ? t("sessions.student.title") : t("sessions.title")}
+        description={isStudent ? t("sessions.student.description") : t("sessions.description")}
         endpoint="/sessions"
         createLabel={t("sessions.create")}
         canCreate={!isStudent && !suspended}
@@ -215,20 +229,24 @@ function Sessions() {
         formNotice={(v, mode) => mode === "create" && <MeetingAccountNotice provider={v.provider} teacherId={v.teacherId} />}
         rowActions={actionsFor}
         extraActions={
-          <Segmented<View>
-            label={t("sessions.calendar.viewsLabel")}
-            value={view}
-            onChange={(v) => router.replace(v === "list" ? `${pathname}?view=list` : pathname, { scroll: false })}
-            options={[
-              { value: "calendar", label: t("sessions.calendar.views.calendar"), icon: CalendarDaysIcon },
-              { value: "list", label: t("sessions.calendar.views.list"), icon: ListIcon },
-            ]}
-          />
+          <Segmented<View> label={t("sessions.calendar.viewsLabel")} value={view} onChange={showView} options={views} />
         }
         renderView={
           view === "calendar"
             ? ({ rows, loading, actionsFor: menu }) => <SessionCalendar sessions={rows} loading={loading} actionsFor={menu} />
-            : undefined
+            : view === "agenda"
+              ? ({ rows, loading }) => (
+                  <StudentAgendaView
+                    sessions={rows}
+                    loading={loading}
+                    onJoin={(s) => void student.enter(s)}
+                    joiningId={student.joiningId}
+                    canJoin={!suspended}
+                    onEvaluation={(s) => setEvaluating({ session: s, mode: "mine" })}
+                    onShowCalendar={() => showView("calendar")}
+                  />
+                )
+              : undefined
         }
       />
       <EvaluationDialog session={evaluating?.session ?? null} mode={evaluating?.mode ?? "mine"} onClose={() => setEvaluating(null)} />

@@ -11,6 +11,7 @@ import { joinSession, ringingKey, useRingingSession, type Ringing } from "@/hook
 import { useI18n } from "@/i18n/provider";
 import { desktopAlert, ringtone } from "@/lib/alerts";
 import { getErrorMessage } from "@/lib/api";
+import { initialOf } from "@/lib/student-agenda";
 import { cn } from "@/lib/utils";
 import type { AuthUser } from "@/lib/types";
 
@@ -145,7 +146,7 @@ function Caller({ name }: { name: string }) {
         <span key={delay} className={cn("absolute inset-0 rounded-full border-3 border-call-muted opacity-0 motion-safe:animate-[call-halo_2.1s_ease-out_infinite]", delay)} />
       ))}
       <span className="absolute inset-0 flex items-center justify-center rounded-full border-6 border-call-foreground bg-highlight text-7xl font-bold text-highlight-foreground">
-        {Array.from(name.trim())[0] ?? ""}
+        {initialOf(name)}
       </span>
     </div>
   );
