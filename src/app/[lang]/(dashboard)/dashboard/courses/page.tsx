@@ -69,6 +69,7 @@ export default function CoursesPage() {
         updateSchema={isStudent ? undefined : courseUpdateSchema}
         toForm={(r) => ({
           title: r.title,
+          teacherId: r.teacher.id,
           subject: r.subject ?? "",
           level: r.level ?? "",
           ...(isAdmin ? { sessionPrice: r.sessionPrice == null ? "" : String(r.sessionPrice) } : {}),
@@ -77,7 +78,17 @@ export default function CoursesPage() {
         })}
         fields={[
           { name: "title", label: t("fields.courseTitle") },
-          { name: "teacherId", label: t("fields.teacher"), type: "select", optionsFrom: { endpoint: "/teachers", labelKey: "user.fullName" }, createOnly: true },
+          {
+            name: "teacherId",
+            label: t("fields.teacher"),
+            type: "select",
+            optionsFrom: { endpoint: "/teachers", labelKey: "user.fullName" },
+            // Sessions, exams and schedules are recorded under the course's teacher.
+            locked: (r) =>
+              !isAdmin
+                ? t("courses.form.teacherByCenter")
+                : Boolean(r._count && r._count.sessions + r._count.exams + r._count.schedules > 0) && t("courses.form.teacherLocked"),
+          },
           { name: "subject", label: t("fields.subject") },
           { name: "level", label: t("courses.form.level") },
           ...(isAdmin

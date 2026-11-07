@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PasswordField, SelectField, TextField, TextareaField } from "@/components/form-fields";
+import { CheckboxListField, PasswordField, SelectField, TextField, TextareaField } from "@/components/form-fields";
 import { RowActions, type RowAction } from "@/components/row-actions";
 import { useCreate, useList, useRemove, useUpdate } from "@/hooks/use-resources";
 import { getErrorMessage } from "@/lib/api";
@@ -34,10 +34,11 @@ export type Column<T extends Row> = {
   hideInView?: boolean;
 };
 
-export type Field = {
+export type Field<T extends Row = Row> = {
   name: string;
   label: string;
-  type?: "text" | "email" | "password" | "number" | "date" | "datetime-local" | "textarea" | "select";
+  /** "checkboxes": several choices, kept comma-separated in the form. */
+  type?: "text" | "email" | "password" | "number" | "date" | "datetime-local" | "textarea" | "select" | "checkboxes";
   placeholder?: string;
   dir?: "ltr" | "rtl";
   hint?: string;
@@ -48,6 +49,11 @@ export type Field = {
   createOnly?: boolean;
   /** Shown only when editing (e.g. status). */
   editOnly?: boolean;
+  /**
+   * Editing only: why this row's value can't change here (shown under the disabled field), or
+   * nothing when it can. The API makes the same call; the form just says so up front.
+   */
+  locked?: (row: T) => string | false | null | undefined;
 };
 
 /** Form values are plain strings keyed by field name; the schema turns them into the API body. */
@@ -69,7 +75,7 @@ type Props<T extends Row> = {
   description?: string;
   endpoint: string;
   columns: Column<T>[];
-  fields: Field[];
+  fields: Field<T>[];
   /** Zod schema for creating: input = form strings, output = API body. */
   schema: FormSchema;
   /** Zod schema for editing. Editing is enabled when both this and `toForm` are given. */
@@ -108,7 +114,7 @@ function get(row: Row, path: string): unknown {
   }, row);
 }
 
-function RemoteSelect({ field, control }: { field: Field; control: FormControl }) {
+function RemoteSelect({ field, control, lock }: { field: Field<never>; control: FormControl; lock?: string }) {
   const remote = useList<Row>(field.optionsFrom?.endpoint ?? "", Boolean(field.optionsFrom));
   const options =
     field.options ??
@@ -119,16 +125,16 @@ function RemoteSelect({ field, control }: { field: Field; control: FormControl }
           ? field.optionsFrom!.labelKey(r)
           : String(get(r, field.optionsFrom!.labelKey as string) ?? r.id),
     }));
-  return (
-    <SelectField
-      control={control}
-      name={field.name}
-      label={field.label}
-      hint={field.hint}
-      options={options}
-      loading={Boolean(field.optionsFrom) && remote.isPending}
-    />
-  );
+  const props = {
+    control,
+    name: field.name,
+    label: field.label,
+    hint: lock ?? field.hint,
+    options,
+    loading: Boolean(field.optionsFrom) && remote.isPending,
+    disabled: Boolean(lock),
+  };
+  return field.type === "checkboxes" ? <CheckboxListField {...props} className="sm:col-span-2" /> : <SelectField {...props} />;
 }
 
 /** Re-renders only itself as the form changes, not the whole page. */
@@ -401,8 +407,10 @@ export default function CrudPage<T extends Row>({
             </DialogHeader>
             <div className="grid gap-4 sm:grid-cols-2">
               {visibleFields.map((f) => {
-                if (f.type === "select") {
-                  return <RemoteSelect key={f.name} field={f} control={form.control} />;
+                const lock = (dialog?.mode === "edit" && f.locked?.(dialog.row)) || undefined;
+                const hint = lock ?? f.hint;
+                if (f.type === "select" || f.type === "checkboxes") {
+                  return <RemoteSelect key={f.name} field={f as Field<never>} control={form.control} lock={lock} />;
                 }
                 if (f.type === "textarea") {
                   return (
@@ -411,7 +419,8 @@ export default function CrudPage<T extends Row>({
                       control={form.control}
                       name={f.name}
                       label={f.label}
-                      hint={f.hint}
+                      hint={hint}
+                      disabled={Boolean(lock)}
                       placeholder={f.placeholder}
                       className="sm:col-span-2"
                       rows={3}
@@ -426,7 +435,8 @@ export default function CrudPage<T extends Row>({
                       control={form.control}
                       name={f.name}
                       label={f.label}
-                      hint={f.hint}
+                      hint={hint}
+                      disabled={Boolean(lock)}
                       autoComplete="new-password"
                       className="sm:col-span-2"
                       requirements
@@ -440,7 +450,8 @@ export default function CrudPage<T extends Row>({
                     control={form.control}
                     name={f.name}
                     label={f.label}
-                    hint={f.hint}
+                    hint={hint}
+                    disabled={Boolean(lock)}
                     type={f.type ?? "text"}
                     dir={f.dir}
                     placeholder={f.placeholder}

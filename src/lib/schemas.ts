@@ -57,6 +57,24 @@ const optionalId = z
   .transform((v) => (v ? v : undefined))
   .refine((v) => !v || z.uuid().safeParse(v).success, vmsg("validation.invalidChoice"));
 
+/** An edit's select that may be emptied: empty string means "none" (null), not "unchanged". */
+const clearableId = z
+  .string()
+  .optional()
+  .transform((v) => (v ? v : null))
+  .refine((v) => !v || z.uuid().safeParse(v).success, vmsg("validation.invalidChoice"));
+
+/**
+ * Several ids from a checkbox list ("a,b"). Nothing ticked is `empty`: undefined when creating
+ * (nothing to set), [] when editing (none any more).
+ */
+const idList = (empty: undefined | never[]) =>
+  z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.split(",").filter(Boolean) : empty))
+    .refine((v) => !v || v.every((id) => z.uuid().safeParse(id).success), vmsg("validation.invalidChoice"));
+
 const requiredId = (field: Label) =>
   z
     .string()
@@ -211,7 +229,7 @@ export const studentSchema = z.object({
   grade: optionalText(60),
   parentPhone: phone,
   notes: optionalText(1000),
-  teacherId: optionalId,
+  teacherIds: idList(undefined),
 });
 
 export const courseSchema = z.object({
@@ -352,6 +370,9 @@ const activeFlag = z
 export const teacherUpdateSchema = z
   .object({
     fullName: requiredText("fields.fullName", 3, 80),
+    // Sent back unchanged when the account can't change here; the API ignores an unchanged email.
+    email,
+    password: optionalPassword,
     phone,
     bio: optionalText(1000),
     subjects,
@@ -361,14 +382,19 @@ export const teacherUpdateSchema = z
 
 export const studentUpdateSchema = z.object({
   fullName: requiredText("fields.fullName", 3, 80),
+  email,
+  password: optionalPassword,
   phone,
   grade: optionalText(60),
   parentPhone: phone,
   notes: optionalText(1000),
+  // Admins only; the API ignores it from teachers.
+  teacherIds: idList([]),
 });
 
 export const courseUpdateSchema = z.object({
   title: requiredText("fields.courseTitle", 3, 120),
+  teacherId: optionalId,
   subject: optionalText(60),
   level: optionalText(60),
   sessionPrice: amountInput("fields.sessionPrice", null),
@@ -376,9 +402,14 @@ export const courseUpdateSchema = z.object({
   isActive: activeFlag,
 });
 
+/** The same fields as creating, plus notes; who is in it and the platform change only before it opens. */
 export const sessionUpdateSchema = z
   .object({
     title: requiredText("fields.sessionTitle", 3, 120),
+    teacherId: optionalId,
+    courseId: clearableId,
+    studentId: optionalId,
+    provider: z.enum(["ZOOM", "GOOGLE_MEET", "MANUAL"], { message: vmsg("validation.chooseProvider") }),
     description: optionalText(2000),
     startAt: isoDate("fields.startAt"),
     endAt: isoDate("fields.endAt"),
@@ -388,10 +419,24 @@ export const sessionUpdateSchema = z
   .refine((v) => new Date(v.endAt) > new Date(v.startAt), {
     message: vmsg("validation.endAfterStart"),
     path: ["endAt"],
-  });
+  })
+  .refine((v) => v.provider !== "MANUAL" || Boolean(v.meetingUrl), {
+    message: vmsg("validation.manualNeedsUrl"),
+    path: ["meetingUrl"],
+  })
+  .refine((v) => Boolean(v.courseId) || Boolean(v.studentId), {
+    message: vmsg("validation.courseOrStudent"),
+    path: ["courseId"],
+  })
+  .transform(({ studentId, ...rest }) => ({
+    ...rest,
+    // Empty keeps the students (or, with a new course, takes everyone enrolled in it).
+    studentIds: studentId ? [studentId] : undefined,
+  }));
 
 export const examUpdateSchema = z.object({
   title: requiredText("fields.examTitle", 3, 120),
+  courseId: optionalId,
   month: isoDate("fields.month"),
   totalMarks: requiredInt("fields.totalMarks", 1, 1000),
   status: z.enum(["DRAFT", "PUBLISHED", "CLOSED"], { message: vmsg("validation.chooseStatus") }),

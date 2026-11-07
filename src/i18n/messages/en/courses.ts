@@ -13,6 +13,8 @@ const courses: Shape<typeof ar> = {
   },
   priceDefault: "Default price",
   form: {
+    teacherLocked: "The course has sessions, exams or schedules under its teacher, so it keeps them",
+    teacherByCenter: "The center admin changes a course's teacher",
     level: "Level / grade",
     sessionPrice: "Session price ({currency})",
     sessionPriceHint: "What a student pays for each session, whatever its length. Leave it empty to use the center's default price.",

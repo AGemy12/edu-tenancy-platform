@@ -5,7 +5,8 @@ import { Controller, type Control, type FieldPath, type FieldValues } from "reac
 import { CheckIcon, EyeIcon, EyeOffIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldDescription, FieldError, FieldLabel, FieldTitle } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -102,6 +103,7 @@ export function PasswordField<T extends FieldValues, TCtx, TOut>({
                 variant="ghost"
                 size="icon-sm"
                 className="absolute end-1 top-1/2 -translate-y-1/2 rounded-lg text-muted-foreground hover:text-foreground"
+                disabled={input.disabled}
                 aria-label={t(visible ? "common.password.hide" : "common.password.show")}
                 aria-pressed={visible}
                 onClick={() => setVisible((v) => !v)}
@@ -214,10 +216,12 @@ export function SelectField<T extends FieldValues, TCtx, TOut>({
   options,
   placeholder,
   loading,
+  disabled,
 }: Base<T, TCtx, TOut> & {
   options: { value: string; label: string }[];
   placeholder?: string;
   loading?: boolean;
+  disabled?: boolean;
 }) {
   const t = useT();
   const translateError = useFieldError();
@@ -228,7 +232,7 @@ export function SelectField<T extends FieldValues, TCtx, TOut>({
       render={({ field, fieldState }) => (
         <Field className={className} data-invalid={fieldState.invalid}>
           <FieldLabel htmlFor={name}>{label}</FieldLabel>
-          <Select value={field.value || undefined} onValueChange={field.onChange} name={field.name}>
+          <Select value={field.value || undefined} onValueChange={field.onChange} name={field.name} disabled={disabled}>
             <SelectTrigger id={name} className="w-full" aria-invalid={fieldState.invalid} onBlur={field.onBlur}>
               <SelectValue placeholder={loading ? t("common.labels.loading") : (placeholder ?? t("common.select.placeholder"))} />
             </SelectTrigger>
@@ -244,6 +248,76 @@ export function SelectField<T extends FieldValues, TCtx, TOut>({
           <FieldError errors={[translateError(fieldState.error)]} />
         </Field>
       )}
+    />
+  );
+}
+
+/**
+ * Several choices as a list of checkboxes. Form values are plain strings, so the chosen values
+ * are kept comma-separated ("a,b"); the schema splits them.
+ */
+export function CheckboxListField<T extends FieldValues, TCtx, TOut>({
+  control,
+  name,
+  label,
+  hint,
+  className,
+  options,
+  loading,
+  disabled,
+}: Base<T, TCtx, TOut> & {
+  options: { value: string; label: string }[];
+  loading?: boolean;
+  disabled?: boolean;
+}) {
+  const t = useT();
+  const translateError = useFieldError();
+  const labelId = useId();
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => {
+        const chosen = String(field.value ?? "").split(",").filter(Boolean);
+        const toggle = (value: string, on: boolean) =>
+          field.onChange((on ? [...chosen, value] : chosen.filter((v) => v !== value)).join(","));
+        return (
+          <Field className={className} data-invalid={fieldState.invalid}>
+            <FieldTitle id={labelId}>{label}</FieldTitle>
+            <div
+              role="group"
+              aria-labelledby={labelId}
+              className="max-h-44 space-y-0.5 overflow-y-auto rounded-xl border p-1.5"
+            >
+              {loading ? (
+                <p className="px-2 py-1.5 text-sm text-muted-foreground">{t("common.labels.loading")}</p>
+              ) : options.length === 0 ? (
+                <p className="px-2 py-1.5 text-sm text-muted-foreground">{t("common.select.noOptions")}</p>
+              ) : (
+                options.map((o) => (
+                  <label
+                    key={o.value}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm",
+                      disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/60",
+                    )}
+                  >
+                    <Checkbox
+                      checked={chosen.includes(o.value)}
+                      onCheckedChange={(on) => toggle(o.value, on === true)}
+                      onBlur={field.onBlur}
+                      disabled={disabled}
+                    />
+                    <bdi className="min-w-0 truncate">{o.label}</bdi>
+                  </label>
+                ))
+              )}
+            </div>
+            {hint && !fieldState.error && <FieldDescription>{hint}</FieldDescription>}
+            <FieldError errors={[translateError(fieldState.error)]} />
+          </Field>
+        );
+      }}
     />
   );
 }

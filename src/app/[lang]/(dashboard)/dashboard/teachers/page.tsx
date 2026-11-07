@@ -128,6 +128,7 @@ export default function TeachersPage() {
       updateSchema={teacherUpdateSchema}
       toForm={(r) => ({
         fullName: r.user.fullName,
+        email: r.user.email,
         phone: r.user.phone ?? "",
         bio: r.bio ?? "",
         // The schema splits on both Latin and Arabic (U+060C) commas; join with the one the user types.
@@ -138,8 +139,17 @@ export default function TeachersPage() {
       defaults={{ payBasis: "PER_SESSION" }}
       fields={[
         { name: "fullName", label: t("fields.fullName") },
-        { name: "email", label: t("fields.email"), type: "email", dir: "ltr", createOnly: true },
+        { name: "email", label: t("fields.email"), type: "email", dir: "ltr", locked: (r) => r.accountLock && t(`common.accountLock.${r.accountLock}`) },
         { name: "password", label: t("fields.password"), type: "password", dir: "ltr", hint: t("teachers.form.passwordHint"), createOnly: true },
+        {
+          name: "password",
+          label: t("fields.password"),
+          type: "password",
+          dir: "ltr",
+          hint: t("teachers.form.passwordEditHint"),
+          editOnly: true,
+          locked: (r) => r.accountLock && t(`common.accountLock.${r.accountLock}`),
+        },
         { name: "phone", label: t("fields.phone"), dir: "ltr" },
         { name: "subjects", label: t("teachers.form.subjects"), placeholder: t("teachers.form.subjectsPlaceholder") },
         {

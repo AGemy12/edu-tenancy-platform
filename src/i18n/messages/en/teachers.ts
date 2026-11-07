@@ -23,6 +23,7 @@ const teachers: Shape<typeof ar> = {
     linkYours: "Connect your account in Settings",
   },
   form: {
+    passwordEditHint: "Leave empty to keep the current one. A new password signs the teacher out on every device",
     passwordHint: "Optional: leave it empty and the teacher gets an email to choose one",
     payHint: "In the center's currency ({currency}) for a fixed amount, or 0 to 100 for a share. Leave it empty if not decided yet.",
     subjects: "Subjects (comma-separated)",

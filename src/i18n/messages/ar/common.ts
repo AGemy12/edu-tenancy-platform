@@ -46,6 +46,7 @@ const common = {
   },
   select: {
     placeholder: "— اختر —",
+    noOptions: "لا توجد خيارات بعد",
   },
   crud: {
     fillAndSave: "املأ البيانات ثم اضغط حفظ.",
@@ -103,6 +104,13 @@ const common = {
     tenantCreated: "تم إنشاء مركزك بنجاح",
     trialStarted: "لديك 14 يوماً تجربة مجانية.",
     registerFailed: "فشل إنشاء الحساب",
+  },
+  /** Why a member's sign-in email and password can't change from this form (shown under the field). */
+  accountLock: {
+    support: "لا تتغير بيانات الدخول في وضع الدعم الفني",
+    self: "هذا حسابك: غيّر بريدك وكلمة مرورك من الإعدادات",
+    admin: "يغيّرها مدير المركز من إعداداته",
+    shared: "الحساب مسجل في مراكز أخرى أيضاً، فيغيّرها صاحبه من إعداداته",
   },
   password: {
     show: "إظهار كلمة المرور",

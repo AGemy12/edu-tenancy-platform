@@ -15,6 +15,11 @@ const sessions: Shape<typeof ar> = {
     meetingUrl: "Meeting link",
   },
   form: {
+    locked: {
+      started: "The session has started or is about to, so its teacher, students, course and platform stay",
+      fromSchedule: "This session comes from a monthly schedule: its teacher, student and course follow the schedule",
+      teacherByCenter: "The center admin changes a session's teacher",
+    },
     courseHint: "Leave the student empty to add every student in the course",
     student: "Student (for a one-on-one session)",
     provider: "Platform",

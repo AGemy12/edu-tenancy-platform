@@ -81,7 +81,12 @@ export type Teacher = {
   meetingAccounts?: { zoom: boolean; google: boolean };
   /** Admins only: what the center pays this teacher per session; null = not set. */
   pay?: TeacherPay | null;
+  /** Why this center can't change the sign-in email and password here, or null when it can. */
+  accountLock: AccountLock | null;
 };
+
+/** See backend auth/member-account.ts. */
+export type AccountLock = "support" | "self" | "admin" | "shared";
 
 export type Student = {
   id: string;
@@ -92,6 +97,7 @@ export type Student = {
   membership: MembershipLite;
   teachers: { teacher: { id: string; user: { fullName: string } } }[];
   _count?: { enrollments: number; attendances: number; examResults: number; schedules: number; billingRates: number };
+  accountLock: AccountLock | null;
 };
 
 export type Course = {
@@ -104,7 +110,7 @@ export type Course = {
   sessionPrice?: number | null;
   isActive: boolean;
   teacher: { id: string; user: { fullName: string } };
-  _count?: { enrollments: number; sessions: number; exams: number };
+  _count?: { enrollments: number; sessions: number; exams: number; schedules: number };
 };
 
 export type SessionProvider = "ZOOM" | "GOOGLE_MEET" | "MANUAL";
@@ -125,6 +131,10 @@ export type LiveSession = {
   endedAt: string | null;
   teacher: { id: string; userId: string; user: { fullName: string } };
   course: { id: string; title: string } | null;
+  /** Set when the session was booked from a student's monthly schedule. */
+  scheduleId: string | null;
+  /** Staff: every student in it; a student: only themselves. */
+  attendees?: { studentId: string }[];
   _count?: { attendees: number };
 };
 
@@ -173,6 +183,7 @@ export type ExamStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 export type Exam = {
   id: string;
   title: string;
+  description: string | null;
   month: string;
   totalMarks: number;
   status: ExamStatus;
@@ -874,7 +885,7 @@ export type SessionAttendee = {
 };
 
 /** GET /sessions/:id (students get only their own attendee row). */
-export type SessionDetail = LiveSession & { attendees: SessionAttendee[] };
+export type SessionDetail = Omit<LiveSession, "attendees"> & { attendees: SessionAttendee[] };
 
 /** Super admin: GET /tenants */
 export type PlatformTenant = {
