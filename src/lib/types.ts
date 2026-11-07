@@ -79,7 +79,14 @@ export type Teacher = {
   _count?: { courses: number; students: number; sessions: number; exams: number; schedules: number; billingRates: number };
   /** Admins only: the meeting accounts this teacher linked (their Zoom and Meet sessions run on them). */
   meetingAccounts?: { zoom: boolean; google: boolean };
+  /** Admins only: what the center pays this teacher per session; null = not set. */
+  pay?: TeacherPay | null;
+  /** Why this center can't change the sign-in email and password here, or null when it can. */
+  accountLock: AccountLock | null;
 };
+
+/** See backend auth/member-account.ts. */
+export type AccountLock = "support" | "self" | "admin" | "shared";
 
 export type Student = {
   id: string;
@@ -90,6 +97,7 @@ export type Student = {
   membership: MembershipLite;
   teachers: { teacher: { id: string; user: { fullName: string } } }[];
   _count?: { enrollments: number; attendances: number; examResults: number; schedules: number; billingRates: number };
+  accountLock: AccountLock | null;
 };
 
 export type Course = {
@@ -98,10 +106,11 @@ export type Course = {
   description: string | null;
   subject: string | null;
   level: string | null;
-  price: string | number | null;
+  /** Admins and teachers: what a student pays per session of this course; null = the center's default. */
+  sessionPrice?: number | null;
   isActive: boolean;
   teacher: { id: string; user: { fullName: string } };
-  _count?: { enrollments: number; sessions: number; exams: number };
+  _count?: { enrollments: number; sessions: number; exams: number; schedules: number };
 };
 
 export type SessionProvider = "ZOOM" | "GOOGLE_MEET" | "MANUAL";
@@ -122,6 +131,10 @@ export type LiveSession = {
   endedAt: string | null;
   teacher: { id: string; userId: string; user: { fullName: string } };
   course: { id: string; title: string } | null;
+  /** Set when the session was booked from a student's monthly schedule. */
+  scheduleId: string | null;
+  /** Staff: every student in it; a student: only themselves. */
+  attendees?: { studentId: string }[];
   _count?: { attendees: number };
 };
 
@@ -170,6 +183,7 @@ export type ExamStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
 export type Exam = {
   id: string;
   title: string;
+  description: string | null;
   month: string;
   totalMarks: number;
   status: ExamStatus;
@@ -481,10 +495,25 @@ export type CenterReport = ReportHead & {
 
 /* ───────── Session billing ───────── */
 
-export type RateKind = "STUDENT_FEE" | "TEACHER_PAY";
-export type RateBasis = "PER_HOUR" | "PER_SESSION" | "PERCENT";
-/** Which tier of the rate card priced a line: a student's own rate, the course's, one teacher's, or the center default. */
+/** Prices are per session: a fixed amount, or (teacher pay only) a % of what the session's students paid. */
+export type RateBasis = "PER_SESSION" | "PERCENT";
+/** Where a price came from: a student's special price, the course's, the center's default, or the teacher's pay. */
 export type RateSource = "STUDENT" | "COURSE" | "TEACHER" | "CENTER";
+export type TeacherPay = { basis: RateBasis; amount: number };
+
+/** GET /billing/prices — the center's prices as it sees them. */
+export type CenterPrices = {
+  currency: string;
+  /** Whether a student absent without an excuse still pays. */
+  chargeAbsent: boolean;
+  /** Admins only: the platform's % of every session (the center's own, else its package's); null = none. */
+  platformFeePercent?: number | null;
+  /** Sessions with no course, or whose course has no price. */
+  defaultPrice: number | null;
+  courses: { id: string; title: string; isActive: boolean; teacher: { id: string; name: string }; students: number; price: number | null }[];
+  special: { course: { id: string; title: string }; student: { id: string; name: string }; price: number }[];
+  teachers: { id: string; name: string; pay: TeacherPay | null }[];
+};
 
 /** Totals over every session matching the filters (not only the current page). */
 export type BillingTotals = {
@@ -501,6 +530,8 @@ export type BillingTotals = {
   platformFee?: number;
   net?: number;
   missingRates: number;
+  /** Students on charged sessions who paid nothing (excused, or absent when absences are free). */
+  freeSeats: number;
   unconfirmed: number;
 };
 
@@ -509,9 +540,14 @@ export type BillingStudentLine = {
   name: string;
   attended: boolean;
   joinedAt: string | null;
+  /** The teacher's evaluation; null until evaluated. */
+  status: AttendanceStatus | null;
+  /** Whether the student pays for this session; `free` says why not. */
+  charged: boolean;
+  free: "EXCUSED" | "ABSENT" | null;
   minutes: number;
+  /** The price per session that applies to this student. */
   rate: number | null;
-  rateBasis: RateBasis | null;
   rateSource: RateSource | null;
   fee: number;
 };
@@ -572,6 +608,8 @@ export type PlatformBilling = {
     status: "ACTIVE" | "SUSPENDED";
     currency: string;
     platformFeePercent: number | null;
+    /** The fee comes from the package (the center has no percentage of its own). */
+    platformFeeFromPlan: boolean;
     sessions: number;
     fees: number;
     platformFee: number;
@@ -625,21 +663,6 @@ export type BillingOptions = {
   teachers: { id: string; name: string }[];
   students: { id: string; name: string }[];
   courses: { id: string; title: string; teacherId: string }[];
-};
-
-export type BillingRate = {
-  id: string;
-  kind: RateKind;
-  basis: RateBasis;
-  amount: number;
-  effectiveFrom: string;
-  note: string | null;
-  source: RateSource;
-  state?: "ACTIVE" | "SCHEDULED" | "SUPERSEDED";
-  /** Always set for teacher pay; for a student price only when it's for one teacher's sessions. */
-  teacher: { id: string; name: string } | null;
-  course: { id: string; title: string } | null;
-  student: { id: string; name: string } | null;
 };
 
 export type TenantStats = {
@@ -784,6 +807,8 @@ export type Plan = PlanSummary & {
   description: string | null;
   priceMonthly: string | null;
   currency: string;
+  /** The platform's % of every session on this package; null = none. */
+  platformFeePercent: number | null;
   maxTeachers: number;
   maxStudents: number;
   isCurrent: boolean;
@@ -860,7 +885,7 @@ export type SessionAttendee = {
 };
 
 /** GET /sessions/:id (students get only their own attendee row). */
-export type SessionDetail = LiveSession & { attendees: SessionAttendee[] };
+export type SessionDetail = Omit<LiveSession, "attendees"> & { attendees: SessionAttendee[] };
 
 /** Super admin: GET /tenants */
 export type PlatformTenant = {
@@ -869,8 +894,10 @@ export type PlatformTenant = {
   slug: string;
   status: "ACTIVE" | "SUSPENDED";
   currency: string;
-  /** The platform's commission on the center's student fees; null = none. */
+  /** The platform's % of the center's sessions that applies (its own, else its package's); null = none. */
   platformFeePercent: number | null;
+  /** The center's own percentage; null = it follows its package. */
+  platformFeeOverride: number | null;
   createdAt: string;
   subscriptionExpired: boolean;
   subscription: {
@@ -964,6 +991,7 @@ export type PlatformTenantDetail = {
   timezone: string;
   currency: string;
   platformFeePercent: number | null;
+  platformFeeOverride: number | null;
   createdAt: string;
   subscriptionExpired: boolean;
   subscription: {
@@ -982,6 +1010,7 @@ export type PlatformTenantDetail = {
       maxFileMb: number;
       priceMonthly: string | null;
       currency: string;
+      platformFeePercent: number | null;
     };
   } | null;
   members: {
@@ -1009,6 +1038,8 @@ export type AdminPlan = {
   descriptionEn: string | null;
   priceMonthly: string | null;
   currency: string;
+  /** The platform's % of every session of a center on this package; null = none. */
+  platformFeePercent: number | null;
   isActive: boolean;
   isPublic: boolean;
   sortOrder: number;

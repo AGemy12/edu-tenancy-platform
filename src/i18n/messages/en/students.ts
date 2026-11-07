@@ -14,6 +14,7 @@ const students: Shape<typeof ar> = {
     courses: "Courses",
   },
   form: {
+    passwordEditHint: "Leave empty to keep the current one. A new password signs the student out on every device",
     passwordHint: "Optional: leave it empty and the student gets an email to choose one",
   },
   actions: {

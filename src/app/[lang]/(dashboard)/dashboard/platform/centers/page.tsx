@@ -256,9 +256,12 @@ export default function PlatformCentersPage() {
                       {r.platformFeePercent === null ? (
                         <span className="text-xs text-muted-foreground">{t("platform.noFee")}</span>
                       ) : (
-                        <Badge variant="outline" dir="ltr">
-                          {t("platform.feePercent", { percent: format.number(r.platformFeePercent) })}
-                        </Badge>
+                        <div className="space-y-0.5">
+                          <Badge variant="outline" dir="ltr">
+                            {t("platform.feePercent", { percent: format.number(r.platformFeePercent) })}
+                          </Badge>
+                          {r.platformFeeOverride === null && <p className="text-xs text-muted-foreground">{t("platform.feeFromPlan")}</p>}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell className="hidden text-sm md:table-cell">

@@ -223,6 +223,7 @@ function TenantDetail({ id }: { id: string }) {
               <dt className="text-xs text-muted-foreground">{t("platform.detail.platformFee")}</dt>
               <dd className="tabular-nums">
                 {d.platformFeePercent === null ? t("platform.noFee") : <span dir="ltr">{t("platform.feePercent", { percent: format.number(d.platformFeePercent) })}</span>}
+                {d.platformFeePercent !== null && d.platformFeeOverride === null && <span className="ms-1 text-xs text-muted-foreground">({t("platform.feeFromPlan")})</span>}
               </dd>
             </div>
           </dl>

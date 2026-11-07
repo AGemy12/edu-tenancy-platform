@@ -6,6 +6,7 @@ import CrudPage from "@/components/crud-page";
 import EnrollmentsDialog from "@/components/courses/enrollments-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/hooks/use-auth";
+import { useBillingOptions } from "@/hooks/use-billing";
 import { useI18n } from "@/i18n/provider";
 import type { Course } from "@/lib/types";
 import { courseSchema, courseUpdateSchema } from "@/lib/schemas";
@@ -14,6 +15,9 @@ export default function CoursesPage() {
   const { t, format } = useI18n();
   const { user } = useCurrentUser();
   const isStudent = user?.role === "STUDENT";
+  // The center sets prices: only its admin sees the field; teachers see the price, students don't.
+  const isAdmin = user?.role === "TENANT_ADMIN";
+  const currency = useBillingOptions().data?.currency ?? "EGP";
   const [students, setStudents] = useState<Course | null>(null);
 
   return (
@@ -33,11 +37,22 @@ export default function CoursesPage() {
           { key: "subject", label: t("fields.subject"), render: (r) => (r.subject ? <Badge variant="secondary">{r.subject}</Badge> : "—") },
           { key: "level", label: t("fields.level") },
           { key: "teacher.user.fullName", label: t("fields.teacher") },
-          {
-            key: "price",
-            label: t("fields.price"),
-            render: (r) => (r.price == null ? "—" : t("courses.priceValue", { amount: format.number(Number(r.price)) })),
-          },
+          ...(isStudent
+            ? []
+            : [
+                {
+                  key: "sessionPrice",
+                  label: t("courses.columns.sessionPrice"),
+                  render: (r: Course) =>
+                    r.sessionPrice == null ? (
+                      <span className="text-muted-foreground">{t("courses.priceDefault")}</span>
+                    ) : (
+                      <span className="font-semibold tabular-nums">
+                        <bdi>{t("billing.perSession", { amount: format.money(r.sessionPrice, currency) })}</bdi>
+                      </span>
+                    ),
+                },
+              ]),
           { key: "_count.enrollments", label: t("courses.columns.enrolled") },
           {
             key: "isActive",
@@ -54,18 +69,39 @@ export default function CoursesPage() {
         updateSchema={isStudent ? undefined : courseUpdateSchema}
         toForm={(r) => ({
           title: r.title,
+          teacherId: r.teacher.id,
           subject: r.subject ?? "",
           level: r.level ?? "",
-          price: r.price == null ? "" : String(r.price),
+          ...(isAdmin ? { sessionPrice: r.sessionPrice == null ? "" : String(r.sessionPrice) } : {}),
           description: r.description ?? "",
           isActive: String(r.isActive),
         })}
         fields={[
           { name: "title", label: t("fields.courseTitle") },
-          { name: "teacherId", label: t("fields.teacher"), type: "select", optionsFrom: { endpoint: "/teachers", labelKey: "user.fullName" }, createOnly: true },
+          {
+            name: "teacherId",
+            label: t("fields.teacher"),
+            type: "select",
+            optionsFrom: { endpoint: "/teachers", labelKey: "user.fullName" },
+            // Sessions, exams and schedules are recorded under the course's teacher.
+            locked: (r) =>
+              !isAdmin
+                ? t("courses.form.teacherByCenter")
+                : Boolean(r._count && r._count.sessions + r._count.exams + r._count.schedules > 0) && t("courses.form.teacherLocked"),
+          },
           { name: "subject", label: t("fields.subject") },
           { name: "level", label: t("courses.form.level") },
-          { name: "price", label: t("courses.form.price"), type: "number", dir: "ltr" },
+          ...(isAdmin
+            ? [
+                {
+                  name: "sessionPrice",
+                  label: t("courses.form.sessionPrice", { currency }),
+                  type: "number" as const,
+                  dir: "ltr" as const,
+                  hint: t("courses.form.sessionPriceHint"),
+                },
+              ]
+            : []),
           {
             name: "isActive",
             label: t("fields.status"),

@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { useNow } from "@/hooks/use-now";
 import { Link } from "@/i18n/navigation";
 import { useI18n } from "@/i18n/provider";
 import {
@@ -67,16 +68,6 @@ type Props = {
   /** The same actions as the row menu in the list view. */
   actionsFor: (s: LiveSession) => RowAction[];
 };
-
-/** Re-renders every minute so "today" and the now line stay current. */
-function useNow() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
 
 export default function SessionCalendar({ sessions, loading, actionsFor }: Props) {
   const { t, format, locale } = useI18n();

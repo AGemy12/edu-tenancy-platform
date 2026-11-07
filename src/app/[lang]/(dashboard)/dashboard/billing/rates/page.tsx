@@ -1,8 +1,8 @@
 "use client";
 
-import { RateCardPage } from "@/components/billing/rate-card-page";
+import { PricesPage } from "@/components/billing/prices-page";
 
-/** The center's price list: what students pay. */
-export default function StudentPricesPage() {
-  return <RateCardPage kind="STUDENT_FEE" />;
+/** The center's prices: per course, special prices, teachers' pay and the billing rules. */
+export default function BillingPricesPage() {
+  return <PricesPage />;
 }

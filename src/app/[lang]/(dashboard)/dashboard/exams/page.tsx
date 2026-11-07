@@ -70,13 +70,21 @@ export default function ExamsPage() {
         updateSchema={isStudent ? undefined : examUpdateSchema}
         toForm={(r) => ({
           title: r.title,
+          courseId: r.course.id,
           month: toDateInput(r.month),
           totalMarks: String(r.totalMarks),
           status: r.status,
+          description: r.description ?? "",
         })}
         fields={[
           { name: "title", label: t("fields.examTitle") },
-          { name: "courseId", label: t("fields.course"), type: "select", optionsFrom: { endpoint: "/courses", labelKey: "title" }, createOnly: true },
+          {
+            name: "courseId",
+            label: t("fields.course"),
+            type: "select",
+            optionsFrom: { endpoint: "/courses", labelKey: "title" },
+            locked: (r) => Boolean(r._count?.results) && t("exams.form.courseLocked"),
+          },
           { name: "month", label: t("fields.month"), type: "date", dir: "ltr", hint: t("exams.form.monthHint") },
           { name: "totalMarks", label: t("fields.totalMarks"), type: "number", dir: "ltr" },
           {

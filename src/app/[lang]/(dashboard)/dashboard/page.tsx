@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { BookOpenIcon, ClipboardCheckIcon, GraduationCapIcon, UsersIcon, VideoIcon } from "lucide-react";
+import { StudentNextSession } from "@/components/sessions/student-agenda";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,6 +54,9 @@ export default function DashboardHome() {
           </div>
         )}
       </div>
+
+      {/* A student's first question is "which session do I go into?": the answer comes first. */}
+      {user?.role === "STUDENT" && <StudentNextSession canJoin={user.status !== "SUSPENDED"} />}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {TILES.map((tile) => {

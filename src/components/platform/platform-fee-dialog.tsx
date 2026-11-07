@@ -20,8 +20,9 @@ export type PlatformFeeTarget = { kind: "single"; tenant: PlatformTenant } | { k
 type Scope = "all" | "selected" | "except";
 
 /**
- * Super admin: set or remove the platform's commission. One center from its row menu, or in bulk
- * from the toolbar: every center, only the ticked ones, or every center except the ticked ones.
+ * Super admin: the platform's fee on centers' sessions. A center follows its package's percentage
+ * unless it has its own (0 = none). One center from its row menu, or in bulk from the toolbar:
+ * every center, only the ticked ones, or every center except the ticked ones.
  */
 export default function PlatformFeeDialog({ target, onClose }: { target: PlatformFeeTarget | null; onClose: () => void }) {
   const { t } = useI18n();
@@ -49,8 +50,9 @@ function FeeForm({ target, onDone }: { target: PlatformFeeTarget; onDone: () => 
   const qc = useQueryClient();
   const single = target.kind === "single" ? target.tenant : null;
   const selected = target.kind === "bulk" ? target.selected : [];
-  const [percent, setPercent] = useState(single?.platformFeePercent != null ? String(single.platformFeePercent) : "");
-  const [remove, setRemove] = useState(Boolean(single && single.platformFeePercent === null));
+  const [percent, setPercent] = useState(single?.platformFeeOverride != null ? String(single.platformFeeOverride) : "");
+  // "From the package" clears the center's own percentage (null).
+  const [remove, setRemove] = useState(Boolean(single && single.platformFeeOverride === null));
   const [scope, setScope] = useState<Scope>(selected.length ? "selected" : "all");
   const value = Number(percent);
   const valid = remove || (percent.trim() !== "" && Number.isFinite(value) && value >= 0 && value <= 100 && /^\d{1,3}(\.\d{1,2})?$/.test(percent.trim()));
@@ -58,7 +60,7 @@ function FeeForm({ target, onDone }: { target: PlatformFeeTarget; onDone: () => 
   const save = useMutation({
     mutationFn: async () => {
       const body = { percent: remove ? null : value };
-      if (single) return (await api.patch<{ platformFeePercent: number | null }>(`/tenants/${single.id}/platform-fee`, body)).data;
+      if (single) return (await api.patch<{ platformFeePercent: number | null; platformFeeOverride: number | null }>(`/tenants/${single.id}/platform-fee`, body)).data;
       const ids = selected.map((s) => s.id);
       const res = await api.patch<{ updated: number }>("/tenants/platform-fee", {
         ...body,

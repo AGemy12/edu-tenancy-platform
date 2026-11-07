@@ -24,6 +24,7 @@ const exams = {
     saved: "تم حفظ الدرجات",
   },
   form: {
+    courseLocked: "رُصدت فيه درجات، فيبقى في كورسه",
     monthHint: "أي يوم داخل الشهر المطلوب",
   },
   status: {

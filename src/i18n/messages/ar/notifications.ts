@@ -18,7 +18,7 @@ const notifications = {
   viewAll: "عرض كل الإشعارات",
   loadMore: "عرض المزيد",
   empty: "لا إشعارات بعد",
-  emptyHint: "ستظهر هنا مواعيد الجلسات والنتائج والإعلانات فور حدوثها.",
+  emptyHint: "ستظهر هنا مواعيد الحصص والنتائج والإعلانات فور حدوثها.",
   emptyUnread: "لا جديد",
   emptyUnreadHint: "قرأت كل إشعاراتك.",
   today: "اليوم",
@@ -30,7 +30,7 @@ const notifications = {
   tabs: { all: "الكل", unread: "غير المقروءة", preferences: "التفضيلات", announcements: "الإعلانات" },
   allCategories: "كل الأنواع",
   categories: {
-    SESSIONS: "الجلسات",
+    SESSIONS: "الحصص",
     EXAMS: "الامتحانات",
     LIBRARY: "الملفات",
     PEOPLE: "المدرسون والطلاب",
@@ -42,7 +42,7 @@ const notifications = {
     ACTIVITY: "نشاط المركز",
   },
   categoryHints: {
-    SESSIONS: "حجز الجلسات وتغيير مواعيدها وإلغاؤها، وبدايتها، والتذكير قبلها، وتقييمها، وطلبات ربط حساب الاجتماعات.",
+    SESSIONS: "حجز الحصص وتغيير مواعيدها وإلغاؤها، وبدايتها، والتذكير قبلها، وتقييمها، وطلبات ربط حساب الاجتماعات.",
     EXAMS: "نشر الامتحانات ورصد الدرجات.",
     LIBRARY: "الملفات التي يرسلها لك المدرسون.",
     PEOPLE: "إضافة مدرس أو طالب جديد إليك.",
@@ -51,7 +51,7 @@ const notifications = {
     SUPPORT: "طلبات دخول الدعم الفني وقرارات المراكز.",
     PLATFORM: "تسجيل مراكز جديدة.",
     ANNOUNCEMENTS: "إعلانات إدارة المركز والمنصة.",
-    ACTIVITY: "نسخة لك من كل ما يحدث في مركزك: الجلسات والجداول والامتحانات والدرجات والملفات والأعضاء الجدد وحالة الحسابات.",
+    ACTIVITY: "نسخة لك من كل ما يحدث في مركزك: الحصص والجداول والامتحانات والدرجات والملفات والأعضاء الجدد وحالة الحسابات.",
   },
   prefs: {
     title: "كيف تصلك الإشعارات",
@@ -103,31 +103,31 @@ const notifications = {
   },
   /** In-app texts; `{at}` and other dates arrive formatted for the reader. */
   types: {
-    SESSION_SCHEDULED: { title: "جلسة جديدة: {title}", body: "مع {teacher} · {at}" },
-    SESSION_RESCHEDULED: { title: "تغيّر موعد جلسة {title}", body: "الموعد الجديد: {at}" },
-    SESSION_CANCELED: { title: "أُلغيت جلسة {title}", body: "كانت مقررة {at} مع {teacher}" },
-    SESSION_LIVE: { title: "بدأت جلسة {title} الآن", body: "{teacher} في الجلسة. ادخل من صفحة الجلسات." },
+    SESSION_SCHEDULED: { title: "حصة جديدة: {title}", body: "مع {teacher} · {at}" },
+    SESSION_RESCHEDULED: { title: "تغيّر موعد حصة {title}", body: "الموعد الجديد: {at}" },
+    SESSION_CANCELED: { title: "أُلغيت حصة {title}", body: "كانت مقررة {at} مع {teacher}" },
+    SESSION_LIVE: { title: "بدأت حصة {title} الآن", body: "{teacher} في الحصة. ادخل من صفحة الحصص." },
     SESSION_REMINDER: {
       title: plural({
-        zero: "تبدأ جلسة {title} الآن",
-        one: "تبدأ جلسة {title} بعد دقيقة",
-        two: "تبدأ جلسة {title} بعد دقيقتين",
-        few: "تبدأ جلسة {title} بعد {count} دقائق",
-        many: "تبدأ جلسة {title} بعد {count} دقيقة",
-        other: "تبدأ جلسة {title} بعد {count} دقيقة",
+        zero: "تبدأ حصة {title} الآن",
+        one: "تبدأ حصة {title} بعد دقيقة",
+        two: "تبدأ حصة {title} بعد دقيقتين",
+        few: "تبدأ حصة {title} بعد {count} دقائق",
+        many: "تبدأ حصة {title} بعد {count} دقيقة",
+        other: "تبدأ حصة {title} بعد {count} دقيقة",
       }),
       body: "مع {teacher} · {at}",
     },
-    SESSION_EVALUATED: { title: "تقييم جديد لجلسة {title}", body: "كتب {teacher} تقييمك وملاحظاته والواجب." },
+    SESSION_EVALUATED: { title: "تقييم جديد لحصة {title}", body: "كتب {teacher} تقييمك وملاحظاته والواجب." },
     SCHEDULE_CREATED: {
       title: "جدول شهري جديد: {title}",
       body: plural({
         zero: "مع {teacher} من {from}",
-        one: "جلسة واحدة مع {teacher} تبدأ {from}",
-        two: "جلستان مع {teacher} تبدآن {from}",
-        few: "{count} جلسات مع {teacher} تبدأ {from}",
-        many: "{count} جلسة مع {teacher} تبدأ {from}",
-        other: "{count} جلسة مع {teacher} تبدأ {from}",
+        one: "حصة واحدة مع {teacher} تبدأ {from}",
+        two: "حصتان مع {teacher} تبدآن {from}",
+        few: "{count} حصص مع {teacher} تبدأ {from}",
+        many: "{count} حصة مع {teacher} تبدأ {from}",
+        other: "{count} حصة مع {teacher} تبدأ {from}",
       }),
     },
     EXAM_PUBLISHED: { title: "امتحان جديد: {title}", body: "{course} · {teacher}" },
@@ -188,15 +188,15 @@ const notifications = {
       PLATFORM: { title: "{title}", body: "{body}" },
     },
     MEETING_ACCOUNT_NEEDED: {
-      ZOOM: { title: "اربط حساب Zoom لجلساتك", body: "تطلب إدارة {tenant} ربطه، فجلساتك تُنشأ على حسابك أنت. اربطه من الإعدادات." },
-      GOOGLE_MEET: { title: "اربط حساب Google لجلساتك", body: "تطلب إدارة {tenant} ربطه، فجلسات Meet تُنشأ على تقويمك أنت. اربطه من الإعدادات." },
+      ZOOM: { title: "اربط حساب Zoom لحصصك", body: "تطلب إدارة {tenant} ربطه، فحصصك تُنشأ على حسابك أنت. اربطه من الإعدادات." },
+      GOOGLE_MEET: { title: "اربط حساب Google لحصصك", body: "تطلب إدارة {tenant} ربطه، فحصص Meet تُنشأ على تقويمك أنت. اربطه من الإعدادات." },
     },
   },
   /** Center activity: the admins' copy of what happened to others, in the third person. */
   by: "بواسطة {name}",
   oversight: {
     SESSION_SCHEDULED: {
-      title: "جلسة جديدة: {title}",
+      title: "حصة جديدة: {title}",
       body: plural({
         zero: "{teacher} · {at}",
         one: "{teacher} مع {student} · {at}",
@@ -207,7 +207,7 @@ const notifications = {
       }),
     },
     SESSION_RESCHEDULED: {
-      title: "تغيّر موعد جلسة {title}",
+      title: "تغيّر موعد حصة {title}",
       body: plural({
         zero: "{teacher} · الموعد الجديد {at}",
         one: "{teacher} مع {student} · الموعد الجديد {at}",
@@ -218,7 +218,7 @@ const notifications = {
       }),
     },
     SESSION_CANCELED: {
-      title: "أُلغيت جلسة {title}",
+      title: "أُلغيت حصة {title}",
       body: plural({
         zero: "{teacher} · كانت مقررة {at}",
         one: "{teacher} مع {student} · كانت مقررة {at}",
@@ -229,7 +229,7 @@ const notifications = {
       }),
     },
     SESSION_LIVE: {
-      title: "بدأت جلسة {title}",
+      title: "بدأت حصة {title}",
       body: plural({
         zero: "{teacher}",
         one: "{teacher} مع {student}",
@@ -240,7 +240,7 @@ const notifications = {
       }),
     },
     SESSION_EVALUATED: {
-      title: "قُيّمت جلسة {title}",
+      title: "قُيّمت حصة {title}",
       body: plural({
         zero: "تقييم {teacher}",
         one: "تقييم {teacher} لـ{student}",
@@ -254,11 +254,11 @@ const notifications = {
       title: "جدول شهري جديد لـ{student}: {title}",
       body: plural({
         zero: "مع {teacher} من {from}",
-        one: "جلسة واحدة مع {teacher} تبدأ {from}",
-        two: "جلستان مع {teacher} تبدآن {from}",
-        few: "{count} جلسات مع {teacher} تبدأ {from}",
-        many: "{count} جلسة مع {teacher} تبدأ {from}",
-        other: "{count} جلسة مع {teacher} تبدأ {from}",
+        one: "حصة واحدة مع {teacher} تبدأ {from}",
+        two: "حصتان مع {teacher} تبدآن {from}",
+        few: "{count} حصص مع {teacher} تبدأ {from}",
+        many: "{count} حصة مع {teacher} تبدأ {from}",
+        other: "{count} حصة مع {teacher} تبدأ {from}",
       }),
     },
     EXAM_PUBLISHED: {

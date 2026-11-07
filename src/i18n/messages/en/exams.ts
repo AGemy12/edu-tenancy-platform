@@ -27,6 +27,7 @@ const exams: Shape<typeof ar> = {
     results: "Results",
   },
   form: {
+    courseLocked: "Marks are recorded in it, so it stays in its course",
     monthHint: "Any day within the month",
   },
   status: {

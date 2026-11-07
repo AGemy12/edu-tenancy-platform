@@ -268,3 +268,13 @@
     transform: rotate(-3deg);
   }
 }
+
+/* A student's join button glows while their session is live, so the one to press stands out. */
+@keyframes join-glow {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--success) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 1rem color-mix(in oklab, var(--success) 0%, transparent);
+  }
+}

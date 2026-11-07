@@ -49,6 +49,7 @@ const common: Shape<typeof ar> = {
   },
   select: {
     placeholder: "— Select —",
+    noOptions: "Nothing to choose from yet",
   },
   crud: {
     fillAndSave: "Fill in the details, then save.",
@@ -106,6 +107,12 @@ const common: Shape<typeof ar> = {
     tenantCreated: "Your center is ready",
     trialStarted: "You have a 14-day free trial.",
     registerFailed: "Couldn't create the account",
+  },
+  accountLock: {
+    support: "Sign-in details don't change in support mode",
+    self: "This is your account: change your email and password in settings",
+    admin: "The center admin changes these in their own settings",
+    shared: "This account is in other centers too, so its owner changes these in their settings",
   },
   password: {
     show: "Show password",
